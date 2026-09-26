@@ -29,3 +29,6 @@ test-results/
 # Generated API contract artefacts are deliberately NOT ignored:
 # packages/api-types/openapi.json and src/schema.d.ts are committed so CI can diff them
 # and fail when the backend and frontend drift. See docs/DECISIONS.md #2.
+
+# tsc incremental build state
+*.tsbuildinfo
