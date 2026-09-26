@@ -162,6 +162,27 @@ export function useDeleteProfile(scoreId: string) {
 
 const FLUSH_DELAY_MS = 300;
 
+/** Add or remove notes from a cached profile, without touching the server. */
+function applyMembership(
+  client: ReturnType<typeof useQueryClient>,
+  scoreId: string,
+  profileId: string,
+  noteIds: Iterable<string>,
+  shouldBelong: boolean,
+): void {
+  client.setQueryData<ProfileRead[]>(keys.profiles(scoreId), (old) =>
+    old?.map((profile) => {
+      if (profile.id !== profileId) return profile;
+      const next = new Set(profile.noteIds);
+      for (const id of noteIds) {
+        if (shouldBelong) next.add(id);
+        else next.delete(id);
+      }
+      return { ...profile, noteIds: [...next] };
+    }),
+  );
+}
+
 /**
  * Toggling notes into and out of a profile.
  *
@@ -175,9 +196,12 @@ const FLUSH_DELAY_MS = 300;
  *    window cancels out and is never sent. Dragging across 200 notes is one request,
  *    not 200.
  *
- * On failure the accumulated batch is rolled back wholesale and the server's view is
- * refetched — with a diff-shaped endpoint there is no partial-application case to
- * reason about, which is most of why the endpoint takes a diff.
+ * On failure the accumulated batch is undone by applying its inverse, then the server's
+ * view is refetched to reconcile. The revert is explicit rather than a bare
+ * invalidation because an invalidation only refetches while something is observing the
+ * query — true today, but a silent dependency on where the hook happens to be mounted.
+ * With a diff-shaped endpoint there is no partial-application case to reason about,
+ * which is most of why the endpoint takes a diff.
  */
 export function useProfileNoteEditor(scoreId: string, profileId: string | null) {
   const client = useQueryClient();
@@ -198,6 +222,8 @@ export function useProfileNoteEditor(scoreId: string, profileId: string | null) 
         old?.map((p) => (p.id === updated.id ? updated : p)),
       );
     } catch {
+      applyMembership(client, scoreId, profileId, add, false);
+      applyMembership(client, scoreId, profileId, remove, true);
       await client.invalidateQueries({ queryKey: keys.profiles(scoreId) });
     }
   }, [client, profileId, scoreId]);
@@ -221,14 +247,7 @@ export function useProfileNoteEditor(scoreId: string, profileId: string | null) 
     (noteIds: string[], shouldBelong: boolean) => {
       if (!profileId || noteIds.length === 0) return;
 
-      client.setQueryData<ProfileRead[]>(keys.profiles(scoreId), (old) =>
-        old?.map((p) => {
-          if (p.id !== profileId) return p;
-          const next = new Set(p.noteIds);
-          for (const id of noteIds) shouldBelong ? next.add(id) : next.delete(id);
-          return { ...p, noteIds: [...next] };
-        }),
-      );
+      applyMembership(client, scoreId, profileId, noteIds, shouldBelong);
 
       for (const id of noteIds) {
         const [into, outOf] = shouldBelong
