@@ -1,0 +1,31 @@
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+*.db
+
+# --- node ---
+node_modules/
+dist/
+.vite/
+coverage/
+playwright-report/
+test-results/
+
+# --- env / secrets ---
+.env
+.env.local
+.env.*.local
+
+# --- editors / os ---
+.DS_Store
+.idea/
+*.swp
+
+# Generated API contract artefacts are deliberately NOT ignored:
+# packages/api-types/openapi.json and src/schema.d.ts are committed so CI can diff them
+# and fail when the backend and frontend drift. See docs/DECISIONS.md #2.
