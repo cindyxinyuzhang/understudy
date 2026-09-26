@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     auth_dev_mode: bool = True
 
     # --- object storage -----------------------------------------------------
+    # "local" writes to a directory and serves it from the API; see app/storage.py for
+    # why that exists and why it is not a production option.
+    storage_backend: Literal["s3", "local"] = "s3"
+    local_storage_dir: str = "./.storage"
     # S3-compatible; MinIO locally, Supabase Storage / S3 in prod.
     s3_endpoint_url: str | None = "http://localhost:9000"
     s3_region: str = "us-east-1"
@@ -32,6 +36,11 @@ class Settings(BaseSettings):
 
     # --- pipeline -----------------------------------------------------------
     omr_engine: Literal["fake", "oemer"] = "fake"
+    # "queue" hands work to Redis/RQ, which is the real topology. "inline" runs the task
+    # in the request thread instead — no broker, no worker process. That makes `pytest`,
+    # Playwright and a bare `uvicorn` all work with nothing else running, at the cost of
+    # a slow request. Never inline in prod: OMR takes minutes and would hold a worker.
+    job_mode: Literal["queue", "inline"] = "queue"
     job_max_attempts: int = 3
     job_timeout_seconds: int = 900
 

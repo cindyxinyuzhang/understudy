@@ -381,6 +381,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/files/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get File
+         * @description Serve an object from the local development storage backend.
+         *
+         *     Registered only when STORAGE_BACKEND=local. With S3 the browser fetches presigned
+         *     URLs directly and never touches this route — deliberately, so page images do not
+         *     consume application workers.
+         *
+         *     Unauthenticated, matching the presigned-URL model it stands in for: possession of
+         *     the key is the capability. Keys embed random UUIDs, so they are not guessable, and
+         *     the backend is refused outright in prod.
+         */
+        get: operations["get_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1755,6 +1783,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {

@@ -1865,6 +1865,47 @@
           }
         }
       }
+    },
+    "/files/{key}": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Get File",
+        "description": "Serve an object from the local development storage backend.\n\nRegistered only when STORAGE_BACKEND=local. With S3 the browser fetches presigned\nURLs directly and never touches this route \u2014 deliberately, so page images do not\nconsume application workers.\n\nUnauthenticated, matching the presigned-URL model it stands in for: possession of\nthe key is the capability. Keys embed random UUIDs, so they are not guessable, and\nthe backend is refused outright in prod.",
+        "operationId": "get_file",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

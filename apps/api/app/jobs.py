@@ -51,8 +51,17 @@ def create_or_get_job(
 
 
 def enqueue(job: Job) -> None:
-    """Hand a committed job row to Redis. Safe to call twice: the worker re-reads
-    status from Postgres and no-ops on a job that is no longer `queued`."""
+    """Hand a committed job row to the worker.
+
+    Safe to call twice: the task re-reads status from Postgres and no-ops on a job that
+    has already settled.
+    """
+    if get_settings().job_mode == "inline":
+        from app.worker.tasks import run_omr_job
+
+        run_omr_job(str(job.id))
+        return
+
     get_queue().enqueue(
         "app.worker.tasks.run_omr_job",
         str(job.id),

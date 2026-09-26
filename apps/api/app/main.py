@@ -11,7 +11,7 @@ from fastapi.routing import APIRoute
 
 from app.config import get_settings
 from app.logging_setup import configure_logging
-from app.routers import annotations, health, jobs, me, profiles, scores, shares
+from app.routers import annotations, files, health, jobs, me, profiles, scores, shares
 
 settings = get_settings()
 configure_logging(settings)
@@ -42,8 +42,13 @@ async def lifespan(app: FastAPI):
             ensure_bucket()
         except Exception as exc:  # noqa: BLE001 - storage may lag behind the API on boot
             log.warning("storage.bucket_check_failed", error=str(exc))
-    if settings.auth_dev_mode and settings.env == "prod":
-        raise RuntimeError("AUTH_DEV_MODE must be off in prod")
+    if settings.env == "prod":
+        if settings.auth_dev_mode:
+            raise RuntimeError("AUTH_DEV_MODE must be off in prod")
+        if settings.storage_backend == "local":
+            raise RuntimeError("STORAGE_BACKEND=local is a development-only backend")
+        if settings.job_mode == "inline":
+            raise RuntimeError("JOB_MODE=inline would block a web worker for minutes")
     log.info("api.start", env=settings.env, omr_engine=settings.omr_engine)
     yield
 
@@ -85,5 +90,5 @@ async def request_context(request: Request, call_next):
     return response
 
 
-for module in (health, me, scores, jobs, profiles, annotations, shares):
+for module in (health, me, scores, jobs, profiles, annotations, shares, files):
     app.include_router(module.router)
