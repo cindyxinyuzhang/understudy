@@ -41,13 +41,13 @@ export default function PartsPanel({
         </label>
       </header>
 
-      <ul className="profile-list">
+      <ul className="voice-list">
         {parts.map((part) => {
           const color = partColors.get(part.id) ?? "#64748b";
           const soloed = soloPartIds.has(part.id);
           const muted = mutedPartIds.has(part.id);
           return (
-            <li key={part.id} className="profile">
+            <li key={part.id} className="voice">
               <button
                 className="swatch"
                 style={{ background: color }}
@@ -65,7 +65,7 @@ export default function PartsPanel({
                   ]);
                 }}
               />
-              <span className="profile-name">
+              <span className="voice-name">
                 {part.name}
                 <span className="muted"> · {noteCounts.get(part.id) ?? 0}</span>
               </span>

@@ -142,7 +142,7 @@ export default function ProfilesPanel({
           {showOtherProfiles && (
             <ul className="profile-list muted">
               {theirs.map((profile) => (
-                <li key={profile.id} className="profile">
+                <li key={profile.id} className="profile shared">
                   <span className="swatch" style={{ background: profile.color }} />
                   <span className="profile-name">
                     {profile.name}

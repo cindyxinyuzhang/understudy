@@ -1,6 +1,8 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+const apiTarget = process.env.VITE_API_TARGET ?? "http://localhost:8000";
+
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -10,10 +12,13 @@ export default defineConfig({
     // exist in production (where both sit behind one domain).
     proxy: {
       "/api": {
-        target: process.env.VITE_API_TARGET ?? "http://localhost:8000",
+        target: apiTarget,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
+      // Page images when the API runs with STORAGE_BACKEND=local. With S3 these URLs
+      // are absolute and presigned, and never touch the dev server.
+      "/files": { target: apiTarget, changeOrigin: true },
     },
   },
   test: {
