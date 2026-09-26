@@ -380,3 +380,23 @@ a {
   stroke-dasharray: 5 3;
   pointer-events: none;
 }
+
+/* --- transport ------------------------------------------------------------- */
+.transport {
+  position: sticky;
+  top: 60px;
+  z-index: 5;
+}
+
+.scrubber {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+/* Currently sounding. Set as a DOM attribute from an animation frame rather than
+   through React state — see audio/usePlayback.ts. */
+.hit-layer [data-playing="true"] .note-hit {
+  fill: color-mix(in srgb, #ffffff 70%, transparent);
+  stroke: #ffffff;
+  stroke-width: 2.5;
+}

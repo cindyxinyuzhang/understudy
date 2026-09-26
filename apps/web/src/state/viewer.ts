@@ -28,6 +28,10 @@ interface ViewerState {
   /** When non-empty, only these parts sound. */
   soloPartIds: Set<string>;
   zoom: number;
+  /** Play only the notes in the active profile, with other parts as a quiet guide. */
+  playSelectionOnly: boolean;
+  tempoScale: number;
+  metronome: boolean;
 
   setActiveProfile: (id: string | null) => void;
   setTool: (tool: Tool) => void;
@@ -37,6 +41,9 @@ interface ViewerState {
   togglePartMuted: (partId: string) => void;
   togglePartSolo: (partId: string) => void;
   setZoom: (zoom: number) => void;
+  setPlaySelectionOnly: (value: boolean) => void;
+  setTempoScale: (value: number) => void;
+  setMetronome: (value: boolean) => void;
 }
 
 function toggleIn(set: Set<string>, value: string): Set<string> {
@@ -54,6 +61,9 @@ export const useViewer = create<ViewerState>((set) => ({
   mutedPartIds: new Set(),
   soloPartIds: new Set(),
   zoom: 1,
+  playSelectionOnly: true,
+  tempoScale: 1,
+  metronome: false,
 
   setActiveProfile: (activeProfileId) => set({ activeProfileId }),
   setTool: (tool) => set({ tool }),
@@ -63,6 +73,9 @@ export const useViewer = create<ViewerState>((set) => ({
   togglePartMuted: (partId) => set((s) => ({ mutedPartIds: toggleIn(s.mutedPartIds, partId) })),
   togglePartSolo: (partId) => set((s) => ({ soloPartIds: toggleIn(s.soloPartIds, partId) })),
   setZoom: (zoom) => set({ zoom: Math.min(3, Math.max(0.4, zoom)) }),
+  setPlaySelectionOnly: (playSelectionOnly) => set({ playSelectionOnly }),
+  setTempoScale: (tempoScale) => set({ tempoScale }),
+  setMetronome: (metronome) => set({ metronome }),
 }));
 
 /** Which parts should actually sound, given mute and solo. */
