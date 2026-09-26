@@ -21,38 +21,13 @@ const apiDir = resolve(here, "../../apps/api");
 const schemaJson = join(here, "openapi.json");
 const outFile = join(here, "src/schema.d.ts");
 
-const venvPython = join(apiDir, ".venv/bin/python");
-const python = existsSync(venvPython) ? venvPython : (process.env.PYTHON ?? "python3");
-
-/**
- * On an Apple Silicon Mac with an x86_64 Node (a Rosetta-translated install, which is
- * easy to end up with via nvm), every child process inherits the translated
- * architecture — so the venv's native arm64 wheels fail to load with a confusing
- * "incompatible architecture" dlopen error. Detect the translated context and force the
- * child back to native. No-op everywhere else, including CI and Docker.
- */
-function spawnPrefix() {
-  if (process.platform !== "darwin") return [];
-  try {
-    const translated = execFileSync("sysctl", ["-n", "sysctl.proc_translated"], {
-      stdio: ["ignore", "pipe", "ignore"],
-    })
-      .toString()
-      .trim();
-    return translated === "1" ? ["arch", "-arm64"] : [];
-  } catch {
-    return [];
-  }
-}
+// `scripts/py` is a thin wrapper that runs the venv's Python natively even when the
+// Node that spawned it is running under Rosetta; see the comments in that script.
+const wrapper = join(apiDir, "scripts/py");
+const python = existsSync(wrapper) ? wrapper : (process.env.PYTHON ?? "python3");
 
 console.log("· dumping OpenAPI from FastAPI");
-const [command, ...argv] = [
-  ...spawnPrefix(),
-  python,
-  join(apiDir, "dump_openapi.py"),
-  schemaJson,
-];
-execFileSync(command, argv, {
+execFileSync(python, [join(apiDir, "dump_openapi.py"), schemaJson], {
   cwd: apiDir,
   stdio: "inherit",
   // The app is imported to read its schema; it must not try to reach a real database.

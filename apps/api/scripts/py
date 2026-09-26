@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+# Run the API virtualenv's Python — natively, whatever spawned us.
+#
+# On an Apple Silicon Mac it is easy to end up with an x86_64 Node (nvm installs one if
+# the shell that ran the installer was itself translated). Every process such a Node
+# spawns inherits the translated architecture, so the venv's native arm64 wheels fail to
+# load with an opaque "incompatible architecture" dlopen error. Anything that launches
+# Python from Node — the OpenAPI codegen, Playwright's webServer — hits this.
+#
+# `sysctl.proc_translated` reports whether the *calling* process is running under
+# Rosetta, which is exactly the question. Elsewhere (Linux, CI, Docker, a native Node)
+# this adds nothing.
+set -e
+
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PYTHON="$DIR/.venv/bin/python"
+[ -x "$PYTHON" ] || PYTHON="$(command -v python3)"
+
+if [ "$(uname -s)" = "Darwin" ] && [ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" = "1" ]; then
+  exec arch -arm64 "$PYTHON" "$@"
+fi
+
+exec "$PYTHON" "$@"

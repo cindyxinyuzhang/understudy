@@ -32,3 +32,6 @@ test-results/
 
 # tsc incremental build state
 *.tsbuildinfo
+
+# Playwright scratch (e2e database and object storage)
+.e2e-scratch/

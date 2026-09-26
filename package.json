@@ -2,7 +2,10 @@
   "name": "understudy",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["packages/api-types", "apps/web"],
+  "workspaces": [
+    "packages/api-types",
+    "apps/web"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -14,7 +17,7 @@
     "typecheck": "npm run typecheck --workspace @understudy/web",
     "lint": "npm run lint --workspace @understudy/web",
     "gen:api": "npm run generate --workspace @understudy/api-types",
-    "gen:api:check": "npm run generate --workspace @understudy/api-types && git diff --exit-code -- packages/api-types"
+    "gen:api:check": "npm run gen:api && git diff --exit-code -- packages/api-types/openapi.json packages/api-types/src/schema.d.ts"
   },
   "devDependencies": {
     "typescript": "^5.5.4"
