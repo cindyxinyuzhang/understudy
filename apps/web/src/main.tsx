@@ -5,6 +5,7 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import { ApiError } from "./lib/api";
+import ScoreDetailPage from "./pages/ScoreDetailPage";
 import ScoresPage from "./pages/ScoresPage";
 import "./styles.css";
 
@@ -24,7 +25,10 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
-    children: [{ index: true, element: <ScoresPage /> }],
+    children: [
+      { index: true, element: <ScoresPage /> },
+      { path: "scores/:scoreId", element: <ScoreDetailPage /> },
+    ],
   },
 ]);
 
