@@ -1,0 +1,34 @@
+# The OMR worker.
+#
+# Separate from the API image because the recognition stack is heavy: model weights,
+# ONNX/CUDA runtime, and poppler for rasterising PDFs. Bundling it into the web image
+# would make every API deploy ship a gigabyte it never executes, and slow every rolling
+# restart.
+#
+# Base it on a CUDA runtime image when deploying to GPU hosts; `python:3.11-slim` keeps
+# local builds fast and oemer falls back to CPU (slowly, but correctly).
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+# poppler-utils backs pdf2image; libgl/libglib are OpenCV's runtime dependencies.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends poppler-utils libgl1 libglib2.0-0 \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY pyproject.toml ./
+# The `omr` extra is what separates this image from the API one.
+RUN pip install --upgrade pip && pip install ".[omr]"
+
+COPY app ./app
+
+RUN useradd --create-home --uid 10001 understudy && chown -R understudy:understudy /app
+USER understudy
+
+# One job at a time per worker: OMR is memory- and GPU-bound, so concurrency comes from
+# running more workers, not more threads inside one.
+CMD ["rq", "worker", "--url", "${REDIS_URL}", "omr"]

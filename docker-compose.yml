@@ -1,0 +1,134 @@
+# Local development stack: `docker compose up` and everything is running.
+#
+# This mirrors the production topology — Postgres, Redis, object storage, a web API and
+# a separate worker — rather than a simplified version of it, so that "works locally"
+# means something. The dev-only shortcuts (SQLite, inline jobs, local file storage)
+# exist for people who want to try the app without Docker; see the README.
+
+name: understudy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: understudy
+      POSTGRES_PASSWORD: understudy
+      POSTGRES_DB: understudy
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      # `pg_isready` alone returns true before the init scripts finish, which is long
+      # enough for the API's first migration to race the database into existence.
+      test: ["CMD-SHELL", "pg_isready -U understudy -d understudy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # console, for eyeballing what the worker uploaded
+    volumes: ["miniodata:/data"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Migrations run as their own one-shot service rather than in the API's entrypoint.
+  # With several API replicas, an entrypoint migration means N concurrent `alembic
+  # upgrade` runs racing for the same advisory lock on every deploy.
+  migrate:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    command: ["alembic", "upgrade", "head"]
+    environment: &api_env
+      ENV: dev
+      DATABASE_URL: postgresql+psycopg://understudy:understudy@postgres:5432/understudy
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_BUCKET: understudy
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      STORAGE_BACKEND: s3
+      JOB_MODE: queue
+      OMR_ENGINE: fake
+      AUTH_DEV_MODE: "true"
+      CORS_ORIGINS: '["http://localhost:5173"]'
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment: *api_env
+    ports: ["8000:8000"]
+    volumes:
+      # Bind-mounted for reload. The image still contains the code, so the same image
+      # runs unmodified in production.
+      - ./apps/api/app:/app/app:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.worker
+    # Shell form so REDIS_URL is expanded by the container's shell, not at compose parse.
+    command: sh -c "rq worker --url $$REDIS_URL omr"
+    environment:
+      <<: *api_env
+      # Switch to `oemer` once the image is built on a CUDA base and the host exposes a
+      # GPU. `fake` keeps the default stack runnable on a laptop.
+      OMR_ENGINE: fake
+    volumes:
+      - ./apps/api/app:/app/app:ro
+    depends_on:
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    # Concurrency comes from replicas, not threads: an OMR run is memory- and GPU-bound.
+    deploy:
+      replicas: 1
+
+  web:
+    image: node:20-alpine
+    working_dir: /repo
+    # Vite dev server rather than the production nginx image: the point of the compose
+    # stack is editing code and seeing it, and `apps/web/Dockerfile` covers the built
+    # artefact for deployment.
+    command: sh -c "npm ci && npm run dev --workspace @understudy/web -- --host 0.0.0.0"
+    environment:
+      VITE_API_TARGET: http://api:8000
+    ports: ["5173:5173"]
+    volumes:
+      - ./:/repo
+      - node_modules:/repo/node_modules
+    depends_on:
+      api: {condition: service_started}
+
+volumes:
+  pgdata:
+  miniodata:
+  node_modules:
