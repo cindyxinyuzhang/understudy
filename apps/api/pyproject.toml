@@ -1,0 +1,64 @@
+[project]
+name = "understudy-api"
+version = "0.1.0"
+description = "Understudy API — part-learning tool for musical theatre scores"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "sqlalchemy>=2.0.30",
+  "alembic>=1.13",
+  "psycopg[binary]>=3.2",
+  "redis>=5.0",
+  "rq>=1.16",
+  "python-jose[cryptography]>=3.3",
+  "boto3>=1.34",
+  "httpx>=0.27",
+  "structlog>=24.1",
+  "sentry-sdk[fastapi]>=2.12",
+  "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.23",
+  "ruff>=0.6",
+  "mypy>=1.11",
+]
+# The heavy OMR stack lives behind an extra so the API image stays small.
+# Install only in the GPU worker image.
+omr = [
+  "oemer>=0.1.7",
+  "pdf2image>=1.17",
+  "Pillow>=10.4",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# B008 fires on every `Depends(...)` / `Query(...)` default, which is how FastAPI
+# dependency injection is spelled. Not a bug here.
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = []
+ignore_missing_imports = true
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app", "app.routers", "app.worker", "app.worker.omr"]
