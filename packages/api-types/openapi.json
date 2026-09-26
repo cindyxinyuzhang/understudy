@@ -58,6 +58,72 @@
         }
       }
     },
+    "/me": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Get Me",
+        "description": "Who the caller is, as this service understands them.\n\nThe client needs its own user ID to tell \"my profile\" from \"a part someone shared\nwith me\". It could decode that from the JWT, but then the dev-header path would\nhave no answer and the frontend would need two ways to find out the same thing.",
+        "operationId": "get_me",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "X-Dev-User",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/scores": {
       "get": {
         "tags": [
@@ -2093,15 +2159,16 @@
           },
           "annotationsOrphaned": {
             "type": "integer",
-            "title": "Annotationsorphaned",
-            "default": 0
+            "title": "Annotationsorphaned"
           }
         },
         "type": "object",
         "required": [
           "toVersionId",
           "notesAdded",
-          "notesRemoved"
+          "notesRemoved",
+          "profiles",
+          "annotationsOrphaned"
         ],
         "title": "MigrationReport",
         "description": "What activating a new score version did to existing user work.\n\nSurfaced to the user rather than silently applied: \"14 of your 312 notes no longer\nexist in the corrected score\" is information a singer needs before a rehearsal."
@@ -2374,7 +2441,8 @@
           "profileId",
           "profileName",
           "kept",
-          "lost"
+          "lost",
+          "lostNoteIds"
         ],
         "title": "ProfileMigration"
       },
@@ -2466,6 +2534,7 @@
           "name",
           "color",
           "isShared",
+          "noteIds",
           "createdAt",
           "updatedAt"
         ],
@@ -2610,7 +2679,8 @@
           "title",
           "ownerId",
           "myRole",
-          "updatedAt"
+          "updatedAt",
+          "versions"
         ],
         "title": "ScoreDetail"
       },
@@ -2703,7 +2773,8 @@
           "scoreId",
           "versionId",
           "version",
-          "doc"
+          "doc",
+          "pageUrls"
         ],
         "title": "ScoreDocResponse",
         "description": "The renderable payload: the document plus signed URLs for its page images.\n\nURLs are minted per request and expire, so the response is deliberately\nuncacheable while the document itself (the expensive part) is content-addressed\nby version ID and cached hard on the client."
@@ -2955,6 +3026,36 @@
           "denominator"
         ],
         "title": "TimeSignature"
+      },
+      "UserRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displayname"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "UserRead"
       },
       "ValidationError": {
         "properties": {

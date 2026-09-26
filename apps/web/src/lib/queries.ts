@@ -28,6 +28,7 @@ import * as api from "./api";
 import { ApiError } from "./api";
 
 export const keys = {
+  me: ["me"] as const,
   scores: ["scores"] as const,
   score: (id: string) => ["scores", id] as const,
   doc: (id: string, versionId?: string) => ["scores", id, "doc", versionId ?? "current"] as const,
@@ -35,7 +36,13 @@ export const keys = {
   annotations: (id: string) => ["scores", id, "annotations"] as const,
   shares: (id: string) => ["scores", id, "shares"] as const,
   job: (id: string) => ["jobs", id] as const,
+  scoreJobs: (id: string) => ["scores", id, "jobs"] as const,
 };
+
+/** Identity changes only on sign-in, so it never goes stale within a session. */
+export function useMe() {
+  return useQuery({ queryKey: keys.me, queryFn: api.getMe, staleTime: Infinity });
+}
 
 export function useScores() {
   return useQuery({ queryKey: keys.scores, queryFn: api.listScores });
@@ -84,6 +91,27 @@ export function useJob(jobId: string | null) {
   });
 }
 
+/**
+ * Recognition jobs for a score, newest first.
+ *
+ * Needed because the common way to arrive at a score is a link or a reload, not the
+ * upload form — the upload may have happened in another tab, or on a castmate's
+ * machine. Polls only while something is unfinished.
+ */
+export function useScoreJobs(scoreId: string) {
+  return useQuery({
+    queryKey: keys.scoreJobs(scoreId),
+    queryFn: () => api.listScoreJobs(scoreId),
+    refetchInterval: (query) => {
+      const jobs = query.state.data as JobRead[] | undefined;
+      if (!jobs) return false;
+      const active = jobs.find((job) => !isJobFinished(job.status));
+      if (!active) return false;
+      return active.status === "running" ? 1000 : 3000;
+    },
+  });
+}
+
 /** Invalidate everything a finished OMR run could have changed. */
 export function useJobCompletionEffect(scoreId: string, job: JobRead | undefined) {
   const client = useQueryClient();
@@ -95,6 +123,7 @@ export function useJobCompletionEffect(scoreId: string, job: JobRead | undefined
     void client.invalidateQueries({ queryKey: keys.score(scoreId) });
     void client.invalidateQueries({ queryKey: keys.scores });
     void client.invalidateQueries({ queryKey: ["scores", scoreId, "doc"] });
+    void client.invalidateQueries({ queryKey: keys.scoreJobs(scoreId) });
   }, [client, job, scoreId]);
 }
 

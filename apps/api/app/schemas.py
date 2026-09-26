@@ -12,6 +12,13 @@ from app.models import JobStatus, ShareRole, TargetType, VersionStatus
 from app.scoredoc import ScoreDoc
 
 
+# --- identity ---------------------------------------------------------------
+class UserRead(CamelModel):
+    id: uuid.UUID
+    email: str
+    display_name: str | None = None
+
+
 # --- scores -----------------------------------------------------------------
 class ScoreSummary(CamelModel):
     id: uuid.UUID
@@ -39,7 +46,9 @@ class ScoreVersionSummary(CamelModel):
 
 
 class ScoreDetail(ScoreSummary):
-    versions: list[ScoreVersionSummary] = Field(default_factory=list)
+    # No default: the server always sends this, and a default would make it optional
+    # in the generated TypeScript for no reason. Request models keep their defaults.
+    versions: list[ScoreVersionSummary]
 
 
 class ScoreDocResponse(CamelModel):
@@ -54,7 +63,7 @@ class ScoreDocResponse(CamelModel):
     version_id: uuid.UUID
     version: int
     doc: ScoreDoc
-    page_urls: list[str] = Field(default_factory=list)
+    page_urls: list[str]
 
 
 class ScoreCreateResponse(CamelModel):
@@ -109,7 +118,7 @@ class ProfileRead(CamelModel):
     color: str
     is_shared: bool
     authored_version_id: uuid.UUID | None = None
-    note_ids: list[str] = Field(default_factory=list)
+    note_ids: list[str]
     created_at: datetime
     updated_at: datetime
 
@@ -154,7 +163,7 @@ class ProfileMigration(CamelModel):
     profile_name: str
     kept: int
     lost: int
-    lost_note_ids: list[str] = Field(default_factory=list)
+    lost_note_ids: list[str]
 
 
 class MigrationReport(CamelModel):
@@ -168,8 +177,8 @@ class MigrationReport(CamelModel):
     to_version_id: uuid.UUID
     notes_added: int
     notes_removed: int
-    profiles: list[ProfileMigration] = Field(default_factory=list)
-    annotations_orphaned: int = 0
+    profiles: list[ProfileMigration]
+    annotations_orphaned: int
 
 
 ScoreCreateResponse.model_rebuild()

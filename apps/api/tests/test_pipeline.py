@@ -130,3 +130,14 @@ def test_rejects_non_pdf_and_empty_uploads(alice):
         ).status_code
         == 400
     )
+
+
+def test_me_returns_the_caller(alice):
+    body = alice.get("/me").json()
+    assert body["email"] == "alice@example.com"
+    assert body["id"]
+
+
+def test_me_requires_authentication(client):
+    client.headers.pop("X-Dev-User", None)
+    assert client.get("/me").status_code == 401

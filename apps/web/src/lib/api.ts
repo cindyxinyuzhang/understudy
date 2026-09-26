@@ -21,6 +21,7 @@ import type {
   ScoreSummary,
   ShareCreate,
   ShareRead,
+  UserRead,
 } from "@understudy/api-types";
 
 import { authHeaders } from "./auth";
@@ -77,6 +78,9 @@ function validationMessage(item: { loc?: unknown[]; msg?: string }): string {
   return field ? `${field}: ${item.msg}` : (item.msg ?? "invalid");
 }
 
+// --- identity ---------------------------------------------------------------
+export const getMe = () => request<UserRead>("/me");
+
 // --- scores -----------------------------------------------------------------
 export const listScores = () => request<ScoreSummary[]>("/scores");
 
@@ -129,6 +133,8 @@ export const deleteScore = (scoreId: string) =>
 
 // --- jobs -------------------------------------------------------------------
 export const getJob = (jobId: string) => request<JobRead>(`/jobs/${jobId}`);
+
+export const listScoreJobs = (scoreId: string) => request<JobRead[]>(`/scores/${scoreId}/jobs`);
 
 // --- profiles ---------------------------------------------------------------
 export const listProfiles = (scoreId: string) =>

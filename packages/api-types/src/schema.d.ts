@@ -41,6 +41,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Me
+         * @description Who the caller is, as this service understands them.
+         *
+         *     The client needs its own user ID to tell "my profile" from "a part someone shared
+         *     with me". It could decode that from the JWT, but then the dev-header path would
+         *     have no answer and the frontend would need two ways to find out the same thing.
+         */
+        get: operations["get_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scores": {
         parameters: {
             query?: never;
@@ -491,11 +515,8 @@ export interface components {
             /** Notesremoved */
             notesRemoved: number;
             /** Profiles */
-            profiles?: components["schemas"]["ProfileMigration"][];
-            /**
-             * Annotationsorphaned
-             * @default 0
-             */
+            profiles: components["schemas"]["ProfileMigration"][];
+            /** Annotationsorphaned */
             annotationsOrphaned: number;
         };
         /**
@@ -616,7 +637,7 @@ export interface components {
             /** Lost */
             lost: number;
             /** Lostnoteids */
-            lostNoteIds?: string[];
+            lostNoteIds: string[];
         };
         /**
          * ProfileNotesPatch
@@ -656,7 +677,7 @@ export interface components {
             /** Authoredversionid */
             authoredVersionId?: string | null;
             /** Noteids */
-            noteIds?: string[];
+            noteIds: string[];
             /**
              * Createdat
              * Format: date-time
@@ -718,7 +739,7 @@ export interface components {
              */
             updatedAt: string;
             /** Versions */
-            versions?: components["schemas"]["ScoreVersionSummary"][];
+            versions: components["schemas"]["ScoreVersionSummary"][];
         };
         /**
          * ScoreDoc
@@ -774,7 +795,7 @@ export interface components {
             version: number;
             doc: components["schemas"]["ScoreDoc"];
             /** Pageurls */
-            pageUrls?: string[];
+            pageUrls: string[];
         };
         /** ScoreSummary */
         ScoreSummary: {
@@ -890,6 +911,18 @@ export interface components {
             /** Denominator */
             denominator: number;
         };
+        /** UserRead */
+        UserRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Displayname */
+            displayName?: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -957,6 +990,38 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    get_me: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Dev-User"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

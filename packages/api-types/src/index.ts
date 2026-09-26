@@ -12,6 +12,8 @@ export type { components, operations, paths };
 
 type S = components["schemas"];
 
+export type UserRead = S["UserRead"];
+
 export type ScoreSummary = S["ScoreSummary"];
 export type ScoreDetail = S["ScoreDetail"];
 export type ScoreVersionSummary = S["ScoreVersionSummary"];

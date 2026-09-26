@@ -11,7 +11,7 @@ from fastapi.routing import APIRoute
 
 from app.config import get_settings
 from app.logging_setup import configure_logging
-from app.routers import annotations, health, jobs, profiles, scores, shares
+from app.routers import annotations, health, jobs, me, profiles, scores, shares
 
 settings = get_settings()
 configure_logging(settings)
@@ -85,5 +85,5 @@ async def request_context(request: Request, call_next):
     return response
 
 
-for module in (health, scores, jobs, profiles, annotations, shares):
+for module in (health, me, scores, jobs, profiles, annotations, shares):
     app.include_router(module.router)
