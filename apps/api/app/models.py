@@ -293,6 +293,18 @@ class Annotation(Base):
     __table_args__ = (
         CheckConstraint("target_type in ('note','part')", name="ck_annotation_target_type"),
         Index("ix_annotations_score_target", "score_id", "target_type", "target_id"),
+        # One annotation of a given kind per target per author. This is what makes the
+        # batch upsert in routers/annotations.py idempotent: re-colouring a note
+        # replaces its colour instead of stacking a second row.
+        Index(
+            "uq_annotation_author_target_kind",
+            "score_id",
+            "author_id",
+            "target_type",
+            "target_id",
+            "kind",
+            unique=True,
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
