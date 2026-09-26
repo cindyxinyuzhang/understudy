@@ -1,0 +1,22 @@
+{
+  "name": "understudy",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["packages/api-types", "apps/web"],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace @understudy/web",
+    "build": "npm run build --workspace @understudy/api-types && npm run build --workspace @understudy/web",
+    "test": "npm run test --workspace @understudy/web",
+    "test:e2e": "npm run test:e2e --workspace @understudy/web",
+    "typecheck": "npm run typecheck --workspace @understudy/web",
+    "lint": "npm run lint --workspace @understudy/web",
+    "gen:api": "npm run generate --workspace @understudy/api-types",
+    "gen:api:check": "npm run generate --workspace @understudy/api-types && git diff --exit-code -- packages/api-types"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
