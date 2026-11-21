@@ -13,7 +13,14 @@ import { Player, type Levels } from './audio'
 import logoUrl from './assets/brand/logo-on-dark.svg'
 import sampleUrl from './assets/sample.musicxml?url'
 import { findParts } from './parts'
-import { createOsmd, extractModel, type Palette, type ScoreModel, type ScoreNote } from './score'
+import {
+  createOsmd,
+  extractModel,
+  type HeadElement,
+  type Palette,
+  type ScoreModel,
+  type ScoreNote,
+} from './score'
 
 // Imported rather than served from public/ so the built file name carries a content
 // hash: a regenerated sample can never be shadowed by a cached copy of the old one.
@@ -223,15 +230,24 @@ export function App() {
   // so this writes straight to it; a re-layout makes a new model and repaints.
   useEffect(() => {
     if (!model) return
+    const colourOf = (noteId: string | null) =>
+      noteId ? partById.get(owner.get(noteId) ?? '')?.colour : undefined
+    // VexFlow sets fills and strokes as attributes; styles.css overrides them from
+    // --part on whatever carries the class.
+    const paint = (el: HeadElement, className: string, colour: string | undefined) => {
+      el.classList.toggle(className, Boolean(colour))
+      if (colour) el.style.setProperty('--part', colour)
+      else el.style.removeProperty('--part')
+    }
     for (const [noteId, heads] of model.heads) {
-      const colour = partById.get(owner.get(noteId) ?? '')?.colour
-      for (const head of heads) {
-        // The head is a group whose path sets its own fill; styles.css recolours
-        // the path from --part when the group is marked as owned.
-        head.classList.toggle('owned', Boolean(colour))
-        if (colour) head.style.setProperty('--part', colour)
-        else head.style.removeProperty('--part')
-      }
+      for (const head of heads) paint(head, 'owned', colourOf(noteId))
+    }
+    for (const glyph of model.glyphs) {
+      // A stem shared by notes of different parts stays ink.
+      const colours = glyph.noteIds.map(colourOf)
+      const one = colours.every((c) => c && c === colours[0]) ? colours[0] : undefined
+      paint(glyph.group, 'stem-owned', one)
+      for (const mark of glyph.marks) paint(mark.el, 'owned', colourOf(mark.noteId))
     }
   }, [model, owner, partById])
 
@@ -313,7 +329,6 @@ export function App() {
     await loadScore(content, file.name.replace(/\.[^.]+$/, ''))
   }
 
-  const activePart = activePartId ? partById.get(activePartId) : undefined
 
   /** The bar under a pointer, from the overlay's own coordinates (it is drawn 1:1 in px). */
   const barAt = (event: React.PointerEvent<SVGSVGElement>): number | null => {
@@ -365,26 +380,26 @@ export function App() {
           <span className="score-title">{title || (loading ? 'Loading…' : 'No score')}</span>
           {meta && <span className="score-meta"> · {meta}</span>}
         </p>
-        <label className="open-file">
-          <UploadIcon />
-          Open another score
-          <input
-            type="file"
-            accept=".musicxml,.xml,.mxl"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              event.target.value = ''
-              if (file) void openFile(file)
-            }}
-          />
-        </label>
+        <div className="topbar-actions">
+          <Help />
+          <label className="open-file">
+            <UploadIcon />
+            Open another score
+            <input
+              type="file"
+              accept=".musicxml,.xml,.mxl"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                event.target.value = ''
+                if (file) void openFile(file)
+              }}
+            />
+          </label>
+        </div>
       </header>
 
       <div className="main">
         <main className="score-column">
-          <p className="score-hint">
-            Drag across bars to pick a section · click a note to move it between parts
-          </p>
           {error && <p className="error">Couldn’t read that score: {error}</p>}
           {loading && !error && <p className="loading">Setting out the music…</p>}
           <div className="score-scroll">
@@ -430,7 +445,7 @@ export function App() {
                     )}
                   {model.notes.map((note) => {
                     const part = partById.get(owner.get(note.id) ?? '')
-                    const cls = ['note', part && 'owned', part && part.id === myPartId && 'mine']
+                    const cls = ['note', part && 'owned']
                     return (
                       <rect
                         key={note.id}
@@ -546,16 +561,6 @@ export function App() {
                     Find the parts again
                   </button>
                 </div>
-                <p className="hint">
-                  {activePart ? (
-                    <>
-                      Marking <strong>{activePart.name || 'this part'}</strong>. Click a note to
-                      add or remove it; shift-click to take its whole voice on that staff.
-                    </>
-                  ) : (
-                    'Pick a part above to start marking notes.'
-                  )}
-                </p>
               </>
             )}
           </section>
@@ -609,6 +614,64 @@ export function App() {
           </section>
         </aside>
       </div>
+    </div>
+  )
+}
+
+/** A "?" that opens a short guide; Escape or a click elsewhere closes it. */
+function Help() {
+  const [open, setOpen] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false)
+    const onDown = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onDown)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onDown)
+    }
+  }, [open])
+
+  return (
+    <div className="help" ref={root}>
+      <button
+        className="help-button"
+        aria-label="How to use Understudy"
+        aria-expanded={open}
+        aria-controls="help-panel"
+        onClick={() => setOpen((o) => !o)}
+      >
+        ?
+      </button>
+      {open && (
+        <section id="help-panel" className="help-panel" aria-label="How to use Understudy">
+          <h2>How it works</h2>
+          <ol>
+            <li>
+              <strong>Say who sings what.</strong> “Soprano, Alto, Tenor, Bass” finds the four
+              parts for you. “Just my part” starts with one.
+            </li>
+            <li>
+              <strong>Fix any note.</strong> Pick a part in the list, then click a note to give
+              it to that part, or click it again to take it back. Shift-click takes every note
+              in that voice on its staff.
+            </li>
+            <li>
+              <strong>Choose bars.</strong> Drag across bars on the score, or click one bar.
+              Click that bar again to go back to the whole piece.
+            </li>
+            <li>
+              <strong>Listen.</strong> Press play. Turn each part on or off with its speaker
+              and set its volume with the slider. Loop repeats the chosen bars.
+            </li>
+          </ol>
+          <p>Open your own score as MusicXML (.musicxml, .xml or .mxl).</p>
+        </section>
+      )}
     </div>
   )
 }

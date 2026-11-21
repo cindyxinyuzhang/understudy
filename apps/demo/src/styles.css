@@ -78,6 +78,67 @@ h2 {
   opacity: 0.72;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.help {
+  position: relative;
+}
+
+.help-button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--us-cream-12);
+  color: var(--us-cream);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.help-button:hover,
+.help-button[aria-expanded='true'] {
+  background: var(--us-cream);
+  color: var(--us-ink);
+}
+
+.help-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: min(360px, calc(100vw - 32px));
+  padding: 20px 22px;
+  border-radius: var(--us-radius-preset);
+  background: var(--us-cream);
+  color: var(--us-ink);
+  box-shadow: var(--us-shadow-panel);
+  font-size: 15px;
+  text-align: left;
+}
+
+.help-panel h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.help-panel ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.help-panel p {
+  margin: 12px 0 0;
+  color: var(--us-muted);
+  font-size: 14px;
+}
+
 .open-file {
   display: inline-flex;
   align-items: center;
@@ -132,17 +193,11 @@ h2 {
 
 .hint,
 .small,
-.score-hint,
 .loading,
 .error {
   margin: 0;
   color: var(--us-muted);
   font-size: 14px;
-}
-
-.score-hint {
-  text-align: center;
-  margin-bottom: 8px;
 }
 
 .loading,
@@ -506,16 +561,17 @@ button.link:hover {
   fill: color-mix(in srgb, var(--us-ink) 12%, transparent);
 }
 
-/* Owned notes are coloured on the engraving itself: App.tsx marks each notehead
-   group, and this beats the fill attribute VexFlow puts on the path inside. */
-.score .vf-notehead.owned path {
+/* Owned notes are coloured on the engraving itself. App.tsx marks heads, dots and
+   accidentals with .owned, and a note's group with .stem-owned when its whole stem
+   belongs to one part; these beat the fill and stroke attributes VexFlow sets. */
+.score .vf-notehead.owned path,
+.score .vf-modifiers path.owned,
+.score .vf-stavenote.stem-owned .vf-flag path {
   fill: var(--part);
 }
 
-/* The overlay only outlines your own part. */
-.note.mine {
+.score .vf-stavenote.stem-owned .vf-stem path {
   stroke: var(--part);
-  stroke-width: 1.5;
 }
 
 .note[data-sounding='true'] {
@@ -539,6 +595,18 @@ button.link:hover {
   .open-file {
     padding: 0 10px;
     font-size: 15px;
+  }
+
+  /* Hang the guide from the (sticky, so positioned) header bar, edge to edge. */
+  .help {
+    position: static;
+  }
+
+  .help-panel {
+    top: calc(100% + 8px);
+    left: 16px;
+    right: 16px;
+    width: auto;
   }
 
   .score-heading {

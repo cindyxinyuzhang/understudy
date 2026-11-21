@@ -51,6 +51,19 @@ export type ScoreModel = {
    * can be coloured on the engraving itself. Replaced on every render.
    */
   heads: Map<string, HeadElement[]>
+  /** Every drawn note group, for colouring its stem, flag, dots and accidentals. */
+  glyphs: Glyph[]
+}
+
+/**
+ * One note as VexFlow drew it: a stem shared by one or more heads, plus its dots
+ * and accidentals. Ids are the model notes behind each head, null for a rest.
+ */
+export type Glyph = {
+  group: HeadElement
+  noteIds: (string | null)[]
+  /** Each dot or accidental, with the note of the head it sits beside. */
+  marks: { el: HeadElement; noteId: string | null }[]
 }
 
 export type Palette = {
@@ -201,7 +214,7 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
 
   evenRows(bars)
 
-  return { notes, bars, length, size, heads }
+  return { notes, bars, length, size, heads, glyphs: findGlyphs(container, heads) }
 }
 
 type Box = ScoreNote['box']
@@ -227,6 +240,30 @@ function boxOf(head: Element, origin: DOMRect | null): Box | null {
   const r = head.getBoundingClientRect()
   if (r.width === 0 && r.height === 0) return null
   return { x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height }
+}
+
+function findGlyphs(container: HTMLElement, heads: Map<string, HeadElement[]>): Glyph[] {
+  const noteOf = new Map<Element, string>()
+  for (const [id, els] of heads) for (const el of els) noteOf.set(el, id)
+  const middle = (el: Element) => {
+    const r = el.getBoundingClientRect()
+    return r.top + r.height / 2
+  }
+
+  return [...container.querySelectorAll<SVGGElement>('.vf-stavenote')].map((group) => {
+    const own = [...group.querySelectorAll('.vf-notehead')].map((el) => ({
+      id: noteOf.get(el) ?? null,
+      y: middle(el),
+    }))
+    // A dot or accidental belongs to the head at its height.
+    const marks = [...group.querySelectorAll<SVGPathElement>('.vf-modifiers path')].map((el) => {
+      const y = middle(el)
+      let best: (typeof own)[number] | undefined
+      for (const head of own) if (!best || Math.abs(head.y - y) < Math.abs(best.y - y)) best = head
+      return { el, noteId: best?.id ?? null }
+    })
+    return { group, noteIds: own.map((h) => h.id), marks }
+  })
 }
 
 /** About a notehead's size, centred on OSMD's anchor for the note. */
