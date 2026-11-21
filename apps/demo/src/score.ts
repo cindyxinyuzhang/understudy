@@ -165,6 +165,8 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
     }
   })
 
+  evenRows(bars)
+
   return { notes, bars, length, size }
 }
 
@@ -216,4 +218,28 @@ type BoundingBoxLike = {
   BorderRight: number
   BorderTop: number
   BorderBottom: number
+}
+
+/**
+ * Each bar's box stops at its own lowest stem, which leaves a ragged edge when a
+ * range is shaded. Bars whose boxes overlap vertically sit on the same row, so
+ * give them all that row's full height.
+ */
+function evenRows(bars: Bar[]): void {
+  const rows: Box[][] = []
+  for (const bar of bars) {
+    const box = bar.box
+    if (!box) continue
+    const row = rows.find((r) => r.some((b) => box.y < b.y + b.h && b.y < box.y + box.h))
+    if (row) row.push(box)
+    else rows.push([box])
+  }
+  for (const row of rows) {
+    const top = Math.min(...row.map((b) => b.y))
+    const bottom = Math.max(...row.map((b) => b.y + b.h))
+    for (const b of row) {
+      b.y = top
+      b.h = bottom - top
+    }
+  }
 }

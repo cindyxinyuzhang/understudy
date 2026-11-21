@@ -52,6 +52,8 @@ export function App() {
   /** Indices into model.bars, inclusive. */
   const [range, setRange] = useState({ from: 0, to: 0 })
   const [loop, setLoop] = useState(false)
+  /** A bar drag in progress: where it began, and whether it has left that bar yet. */
+  const barDrag = useRef<{ anchor: number; moved: boolean; wasOnlyThisBar: boolean } | null>(null)
   const currentBpm = useRef(bpm)
 
   // The highlight is set straight on the DOM from Tone's draw callback: a React
@@ -233,6 +235,44 @@ export function App() {
 
   const activeLine = activeLineId ? lineById.get(activeLineId) : undefined
 
+  /** The bar under a pointer, from the overlay's own coordinates (it is drawn 1:1 in px). */
+  const barAt = (event: React.PointerEvent<SVGSVGElement>): number | null => {
+    const origin = event.currentTarget.getBoundingClientRect()
+    const x = event.clientX - origin.left
+    const y = event.clientY - origin.top
+    const i = bars.findIndex(
+      (bar) => bar.box && x >= bar.box.x && x <= bar.box.x + bar.box.w && y >= bar.box.y && y <= bar.box.y + bar.box.h,
+    )
+    return i === -1 ? null : i
+  }
+
+  // Dragging over the music picks a span of bars; a click picks one bar, and a
+  // second click on that same lone bar goes back to the whole piece. Notes sit
+  // above the bar layer and keep their own clicks, so this never fights marking.
+  const onBarDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (event.button !== 0 || (event.target as Element).classList.contains('note')) return
+    const i = barAt(event)
+    if (i === null) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    barDrag.current = { anchor: i, moved: false, wasOnlyThisBar: range.from === i && range.to === i }
+    setRange({ from: i, to: i })
+  }
+
+  const onBarMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    const drag = barDrag.current
+    if (!drag) return
+    const i = barAt(event)
+    if (i === null) return
+    if (i !== drag.anchor) drag.moved = true
+    setRange({ from: Math.min(drag.anchor, i), to: Math.max(drag.anchor, i) })
+  }
+
+  const onBarUp = () => {
+    const drag = barDrag.current
+    barDrag.current = null
+    if (drag && !drag.moved && drag.wasOnlyThisBar) setRange({ from: 0, to: bars.length - 1 })
+  }
+
   return (
     <div className="hall">
       <header className="masthead">
@@ -405,6 +445,7 @@ export function App() {
                   </button>
                 )}
               </div>
+              <span className="small">Or drag across bars on the score.</span>
             </div>
             <div className="control-group">
               <span className="label">At the end</span>
@@ -441,10 +482,27 @@ export function App() {
             {model && !loading && (
               <svg
                 className={activeLineId ? 'overlay marking' : 'overlay'}
+                onPointerDown={onBarDown}
+                onPointerMove={onBarMove}
+                onPointerUp={onBarUp}
+                onPointerCancel={onBarUp}
                 width={model.size.w}
                 height={model.size.h}
                 viewBox={`0 0 ${model.size.w} ${model.size.h}`}
               >
+                {bars.map(
+                  (bar, i) =>
+                    bar.box && (
+                      <rect
+                        key={`hit-${i}`}
+                        className="bar-hit"
+                        x={bar.box.x}
+                        y={bar.box.y}
+                        width={bar.box.w}
+                        height={bar.box.h}
+                      />
+                    ),
+                )}
                 {!wholePiece &&
                   bars.slice(range.from, range.to + 1).map(
                     (bar) =>

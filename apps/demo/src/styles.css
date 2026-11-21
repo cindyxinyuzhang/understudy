@@ -322,6 +322,16 @@ input:focus-visible,
   align-self: center;
 }
 
+.bar-hit {
+  fill: transparent;
+  cursor: col-resize;
+}
+
+.overlay {
+  touch-action: none;
+  user-select: none;
+}
+
 .bar-shade {
   fill: color-mix(in srgb, var(--brass) 12%, transparent);
   pointer-events: none;
