@@ -36,6 +36,9 @@ export type Bar = {
   box: { x: number; y: number; w: number; h: number } | null
 }
 
+/** A drawn notehead: SVG at runtime, though OSMD types it as an HTML element. */
+export type HeadElement = HTMLElement | SVGElement
+
 export type ScoreModel = {
   notes: ScoreNote[]
   bars: Bar[]
@@ -43,6 +46,11 @@ export type ScoreModel = {
   length: number
   /** Pixel size of the rendered engraving. */
   size: { w: number; h: number }
+  /**
+   * The noteheads OSMD drew for each note id, tie continuations included, so a note
+   * can be coloured on the engraving itself. Replaced on every render.
+   */
+  heads: Map<string, HeadElement[]>
 }
 
 export type Palette = {
@@ -100,6 +108,9 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
   const graphic = osmd.GraphicSheet
   const scale = UNIT_PX * osmd.zoom
   const notes: ScoreNote[] = []
+  const heads = new Map<string, HeadElement[]>()
+  /** Tie start notes by their source note, so continuations can find their id. */
+  const tieIds = new Map<unknown, string>()
 
   let length = 0
 
@@ -123,9 +134,16 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
             const source = gNote.sourceNote
             if (!source || source.isRest()) continue
 
-            // Continuations of a tie are already covered by the tie's first note.
+            const head = noteheadOf(gNote, byPitch.indexOf(gNote))
+
+            // Continuations of a tie are already covered by the tie's first note;
+            // only their heads are kept, so the tied note colours as one.
             const tie = source.NoteTie
-            if (tie && tie.StartNote !== source) continue
+            if (tie && tie.StartNote !== source) {
+              const startId = tieIds.get(tie.StartNote)
+              if (startId && head) heads.get(startId)?.push(head)
+              continue
+            }
 
             const pitch = source.Pitch
             if (!pitch) continue
@@ -134,15 +152,20 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
             const duration = (tie ? tie.Duration.RealValue : source.Length.RealValue) * 4
             if (duration <= 0) continue
 
-            const box =
-              noteheadBox(gNote, byPitch.indexOf(gNote), origin) ?? fallbackBox(gNote, scale)
+            // With no head to measure, the whole drawn note is the next best box.
+            const drawn = head ?? (gNote instanceof VexFlowGraphicalNote ? gNote.getSVGGElement?.() : null)
+            const box = (drawn && boxOf(drawn, origin)) ?? fallbackBox(gNote, scale)
 
             const voice = source.ParentVoiceEntry?.ParentVoice?.VoiceId ?? 1
             const n = seq.get(voice) ?? 0
             seq.set(voice, n + 1)
 
+            const id = `${staff}:${voice}:${measureNumber}:${n}`
+            heads.set(id, head ? [head] : [])
+            if (tie) tieIds.set(source, id)
+
             notes.push({
-              id: `${staff}:${voice}:${measureNumber}:${n}`,
+              id,
               staff,
               voice,
               measure: measureNumber,
@@ -178,23 +201,30 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
 
   evenRows(bars)
 
-  return { notes, bars, length, size }
+  return { notes, bars, length, size, heads }
 }
 
 type Box = ScoreNote['box']
 
 /**
- * OSMD leaves a note's own bounding box empty after a VexFlow render, so measure
- * the notehead VexFlow actually drew. Chords share a stem but each notehead is
- * separate, which is what lets one note of a chord be claimed on its own.
+ * The notehead VexFlow drew for this note. Chords share a stem but each head is a
+ * separate element; heads are ranked from the top to match the note's pitch rank.
  */
-function noteheadBox(gNote: GraphicalNote, rank: number, origin: DOMRect | null): Box | null {
-  if (!origin || !(gNote instanceof VexFlowGraphicalNote)) return null
+function noteheadOf(gNote: GraphicalNote, rank: number): HeadElement | null {
+  if (!(gNote instanceof VexFlowGraphicalNote)) return null
   const heads = (gNote.getNoteheadSVGs?.() ?? [])
-    .map((el) => el.getBoundingClientRect())
+    .map((el) => ({ el, top: el.getBoundingClientRect().top }))
     .sort((a, b) => a.top - b.top)
-  const r = heads[rank] ?? heads[0] ?? gNote.getSVGGElement?.()?.getBoundingClientRect()
-  if (!r) return null
+  return heads[rank]?.el ?? heads[0]?.el ?? null
+}
+
+/**
+ * OSMD leaves a note's own bounding box empty after a VexFlow render, so measure
+ * the notehead VexFlow actually drew.
+ */
+function boxOf(head: Element, origin: DOMRect | null): Box | null {
+  if (!origin) return null
+  const r = head.getBoundingClientRect()
   if (r.width === 0 && r.height === 0) return null
   return { x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height }
 }

@@ -214,11 +214,21 @@ export function App() {
   useEffect(() => () => player.dispose(), [player])
 
   const partById = useMemo(() => new Map(parts.map((l) => [l.id, l])), [parts])
-  const counts = useMemo(() => {
-    const c = new Map<string, number>()
-    for (const partId of owner.values()) c.set(partId, (c.get(partId) ?? 0) + 1)
-    return c
-  }, [owner])
+  // Notes take their part's colour on the engraving itself. OSMD's SVG is not React's,
+  // so this writes straight to it; a re-layout makes a new model and repaints.
+  useEffect(() => {
+    if (!model) return
+    for (const [noteId, heads] of model.heads) {
+      const colour = partById.get(owner.get(noteId) ?? '')?.colour
+      for (const head of heads) {
+        // The head is a group whose path sets its own fill; styles.css recolours
+        // the path from --part when the group is marked as owned.
+        head.classList.toggle('owned', Boolean(colour))
+        if (colour) head.style.setProperty('--part', colour)
+        else head.style.removeProperty('--part')
+      }
+    }
+  }, [model, owner, partById])
 
   const addParts = (names: string[]) => {
     const added = names.map((name, i) => newPart(name, parts.length + i))
@@ -481,9 +491,6 @@ export function App() {
                         aria-label="Part name"
                         onChange={(event) => renamePart(part.id, event.target.value)}
                       />
-                      <span className="count" title="Notes in this part">
-                        {counts.get(part.id) ?? 0}
-                      </span>
                       <button
                         className={part.id === myPartId ? 'mine-toggle on' : 'mine-toggle'}
                         title="This is the part I'm learning"

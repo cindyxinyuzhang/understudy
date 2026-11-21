@@ -259,13 +259,6 @@ h2 {
   outline-offset: 0;
 }
 
-.count {
-  font-size: 13px;
-  color: var(--us-muted);
-  font-variant-numeric: tabular-nums;
-  min-width: 2ch;
-}
-
 .mine-toggle,
 .remove {
   min-height: 32px;
@@ -485,11 +478,13 @@ button.link:hover {
   fill: color-mix(in srgb, var(--us-ink) 12%, transparent);
 }
 
-.note.owned,
-.overlay.marking .note.owned:hover {
-  fill: color-mix(in srgb, var(--part) 32%, transparent);
+/* Owned notes are coloured on the engraving itself: App.tsx marks each notehead
+   group, and this beats the fill attribute VexFlow puts on the path inside. */
+.score .vf-notehead.owned path {
+  fill: var(--part);
 }
 
+/* The overlay only outlines your own part. */
 .note.mine {
   stroke: var(--part);
   stroke-width: 1.5;
