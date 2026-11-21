@@ -1,5 +1,6 @@
 // Generates src/assets/sample.musicxml — a 16-bar SATB setting of the "Ode to Joy"
-// theme (Beethoven, Symphony No. 9 finale; public domain) in D major.
+// theme (Beethoven, Symphony No. 9 finale; public domain) in D major, with
+// Henry van Dyke's English hymn text.
 //
 // The arrangement is kept deliberately homophonic: the lower voices mostly move
 // with the melody, which is what makes it legible as a part-learning demo. Two
@@ -140,38 +141,48 @@ const bass = [
   B.A1, B.A2, B.A3, B.full,
 ]
 
-// Schiller's text, one syllable per soprano note. The eighth-note pairs in
-// m10 and m11 are melismas, so the second eighth takes no syllable.
+// Henry van Dyke's "Joyful, Joyful, We Adore Thee" (1907; public domain), the
+// usual English words to this tune, one syllable per soprano note. A trailing
+// hyphen means the word carries on into the next syllable. The eighth-note pairs
+// in m10 and m11 are melismas, so the second eighth takes no syllable.
 const LYRICS = [
-  ['Freu', 'de,', 'schö', 'ner'],
-  ['Göt', 'ter', 'fun', 'ken,'],
-  ['Toch', 'ter', 'aus', 'E'],
-  ['ly', 'si', 'um,'],
-  ['Wir', 'be', 'tre', 'ten'],
-  ['feu', 'er', 'trun', 'ken,'],
-  ['Himm', 'li', 'sche,', 'dein'],
-  ['Hei', 'lig', 'tum!'],
-  ['Dei', 'ne', 'Zau', 'ber'],
-  ['bin', 'den', null, 'wie', 'der,'],
-  ['was', 'die', null, 'Mo', 'de'],
-  ['streng', 'ge', 'teilt;'],
-  ['Al', 'le', 'Men', 'schen'],
-  ['wer', 'den', 'Brü', 'der,'],
-  ['wo', 'dein', 'sanf', 'ter'],
-  ['Flü', 'gel', 'weilt.'],
+  ['Joy-', 'ful,', 'joy-', 'ful,'],
+  ['we', 'a-', 'dore', 'Thee,'],
+  ['God', 'of', 'glo-', 'ry,'],
+  ['Lord', 'of', 'love;'],
+  ['Hearts', 'un-', 'fold', 'like'],
+  ["flow'rs", 'be-', 'fore', 'Thee,'],
+  ["Op'-", 'ning', 'to', 'the'],
+  ['sun', 'a-', 'bove.'],
+  ['Melt', 'the', 'clouds', 'of'],
+  ['sin', 'and', null, 'sad-', 'ness;'],
+  ['Drive', 'the', null, 'dark', 'of'],
+  ['doubt', 'a-', 'way;'],
+  ['Giv-', 'er', 'of', 'im-'],
+  ['mor-', 'tal', 'glad-', 'ness,'],
+  ['Fill', 'us', 'with', 'the'],
+  ['light', 'of', 'day!'],
 ]
 
-/** A syllable ending in punctuation closes a word; otherwise it continues. */
-function syllabicOf(text, prev, next) {
-  const endsWord = /[.,;!?]$/.test(text) || next === undefined || next === null
-    ? true
-    : /^[A-ZÄÖÜ]/.test(next) || /[.,;!?]$/.test(text)
-  const startsWord = prev === undefined || prev === null || /[.,;!?]$/.test(prev)
-  if (startsWord && endsWord) return 'single'
-  if (startsWord) return 'begin'
-  if (endsWord) return 'end'
-  return 'middle'
-}
+/**
+ * MusicXML's <syllabic> for each syllable, keyed "measure:index". Whether a
+ * syllable starts or ends a word depends on its neighbours, which can sit in
+ * the next or previous bar, so this walks the whole text once.
+ */
+const SYLLABIC = (() => {
+  const flat = []
+  LYRICS.forEach((words, m) => words.forEach((w, j) => w && flat.push({ key: `${m}:${j}`, w })))
+  const out = new Map()
+  flat.forEach(({ key, w }, k) => {
+    const starts = k === 0 || !flat[k - 1].w.endsWith('-')
+    const ends = !w.endsWith('-')
+    out.set(key, {
+      text: w.replace(/-$/, ''),
+      syllabic: starts && ends ? 'single' : starts ? 'begin' : ends ? 'end' : 'middle',
+    })
+  })
+  return out
+})()
 
 /** Where a voice sits in closed score: soprano and alto share the treble staff, tenor and bass the bass staff. */
 const VOICES = [
@@ -238,12 +249,8 @@ function renderChoir() {
     }
     VOICES.forEach((v, k) => {
       if (k > 0) out.push(`      <backup><duration>${DIVISIONS * 4}</duration></backup>`)
-      const words = v.lyrics ? v.lyrics[i] : null
       v.measures[i].forEach((spec, j) => {
-        let lyric = null
-        if (words && words[j]) {
-          lyric = { text: words[j], syllabic: syllabicOf(words[j], words[j - 1], words[j + 1]) }
-        }
+        const lyric = v.lyrics ? SYLLABIC.get(`${i}:${j}`) ?? null : null
         out.push(renderNote(note(spec), v, lyric))
       })
     })
@@ -264,8 +271,8 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
   </work>
   <identification>
     <creator type="composer">Ludwig van Beethoven</creator>
-    <creator type="lyricist">Friedrich Schiller</creator>
-    <rights>Public domain</rights>
+    <creator type="lyricist">Henry van Dyke</creator>
+    <rights>Public domain (music 1824, words 1907)</rights>
     <encoding>
       <software>understudy/scripts/make-score.mjs</software>
       <encoding-description>16-bar SATB excerpt in closed score, Symphony No. 9 finale</encoding-description>

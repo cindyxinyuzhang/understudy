@@ -6,8 +6,8 @@
   </work>
   <identification>
     <creator type="composer">Ludwig van Beethoven</creator>
-    <creator type="lyricist">Friedrich Schiller</creator>
-    <rights>Public domain</rights>
+    <creator type="lyricist">Henry van Dyke</creator>
+    <rights>Public domain (music 1824, words 1907)</rights>
     <encoding>
       <software>understudy/scripts/make-score.mjs</software>
       <encoding-description>16-bar SATB excerpt in closed score, Symphony No. 9 finale</encoding-description>
@@ -40,7 +40,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>begin</syllabic>
-          <text>Freu</text>
+          <text>Joy</text>
         </lyric>
       </note>
       <note>
@@ -56,7 +56,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>end</syllabic>
-          <text>de,</text>
+          <text>ful,</text>
         </lyric>
       </note>
       <note>
@@ -71,7 +71,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>begin</syllabic>
-          <text>schö</text>
+          <text>joy</text>
         </lyric>
       </note>
       <note>
@@ -86,7 +86,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>end</syllabic>
-          <text>ner</text>
+          <text>ful,</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -238,8 +238,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>Göt</text>
+          <syllabic>single</syllabic>
+          <text>we</text>
         </lyric>
       </note>
       <note>
@@ -253,8 +253,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>ter</text>
+          <syllabic>begin</syllabic>
+          <text>a</text>
         </lyric>
       </note>
       <note>
@@ -269,8 +269,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>fun</text>
+          <syllabic>end</syllabic>
+          <text>dore</text>
         </lyric>
       </note>
       <note>
@@ -284,8 +284,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>ken,</text>
+          <syllabic>single</syllabic>
+          <text>Thee,</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -438,8 +438,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>Toch</text>
+          <syllabic>single</syllabic>
+          <text>God</text>
         </lyric>
       </note>
       <note>
@@ -453,8 +453,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>ter</text>
+          <syllabic>single</syllabic>
+          <text>of</text>
         </lyric>
       </note>
       <note>
@@ -468,8 +468,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>aus</text>
+          <syllabic>begin</syllabic>
+          <text>glo</text>
         </lyric>
       </note>
       <note>
@@ -485,7 +485,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>end</syllabic>
-          <text>E</text>
+          <text>ry,</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -645,8 +645,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>ly</text>
+          <syllabic>single</syllabic>
+          <text>Lord</text>
         </lyric>
       </note>
       <note>
@@ -660,8 +660,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>si</text>
+          <syllabic>single</syllabic>
+          <text>of</text>
         </lyric>
       </note>
       <note>
@@ -675,8 +675,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>um,</text>
+          <syllabic>single</syllabic>
+          <text>love;</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -804,8 +804,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>Wir</text>
+          <syllabic>single</syllabic>
+          <text>Hearts</text>
         </lyric>
       </note>
       <note>
@@ -820,8 +820,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>be</text>
+          <syllabic>begin</syllabic>
+          <text>un</text>
         </lyric>
       </note>
       <note>
@@ -835,8 +835,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>tre</text>
+          <syllabic>end</syllabic>
+          <text>fold</text>
         </lyric>
       </note>
       <note>
@@ -850,8 +850,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>ten</text>
+          <syllabic>single</syllabic>
+          <text>like</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -1003,8 +1003,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>feu</text>
+          <syllabic>single</syllabic>
+          <text>flow'rs</text>
         </lyric>
       </note>
       <note>
@@ -1018,8 +1018,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>er</text>
+          <syllabic>begin</syllabic>
+          <text>be</text>
         </lyric>
       </note>
       <note>
@@ -1034,8 +1034,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>trun</text>
+          <syllabic>end</syllabic>
+          <text>fore</text>
         </lyric>
       </note>
       <note>
@@ -1049,8 +1049,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>ken,</text>
+          <syllabic>single</syllabic>
+          <text>Thee,</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -1204,7 +1204,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>begin</syllabic>
-          <text>Himm</text>
+          <text>Op'</text>
         </lyric>
       </note>
       <note>
@@ -1218,8 +1218,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>li</text>
+          <syllabic>end</syllabic>
+          <text>ning</text>
         </lyric>
       </note>
       <note>
@@ -1233,8 +1233,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>sche,</text>
+          <syllabic>single</syllabic>
+          <text>to</text>
         </lyric>
       </note>
       <note>
@@ -1250,7 +1250,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>single</syllabic>
-          <text>dein</text>
+          <text>the</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -1405,8 +1405,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>Hei</text>
+          <syllabic>single</syllabic>
+          <text>sun</text>
         </lyric>
       </note>
       <note>
@@ -1420,8 +1420,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>lig</text>
+          <syllabic>begin</syllabic>
+          <text>a</text>
         </lyric>
       </note>
       <note>
@@ -1436,7 +1436,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>end</syllabic>
-          <text>tum!</text>
+          <text>bove.</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -1560,8 +1560,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>Dei</text>
+          <syllabic>single</syllabic>
+          <text>Melt</text>
         </lyric>
       </note>
       <note>
@@ -1575,8 +1575,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>ne</text>
+          <syllabic>single</syllabic>
+          <text>the</text>
         </lyric>
       </note>
       <note>
@@ -1591,8 +1591,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>Zau</text>
+          <syllabic>single</syllabic>
+          <text>clouds</text>
         </lyric>
       </note>
       <note>
@@ -1606,8 +1606,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>ber</text>
+          <syllabic>single</syllabic>
+          <text>of</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -1753,8 +1753,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>bin</text>
+          <syllabic>single</syllabic>
+          <text>sin</text>
         </lyric>
       </note>
       <note>
@@ -1769,8 +1769,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>den</text>
+          <syllabic>single</syllabic>
+          <text>and</text>
         </lyric>
       </note>
       <note>
@@ -1797,7 +1797,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>begin</syllabic>
-          <text>wie</text>
+          <text>sad</text>
         </lyric>
       </note>
       <note>
@@ -1812,7 +1812,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>end</syllabic>
-          <text>der,</text>
+          <text>ness;</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -1965,8 +1965,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>was</text>
+          <syllabic>single</syllabic>
+          <text>Drive</text>
         </lyric>
       </note>
       <note>
@@ -1981,8 +1981,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>die</text>
+          <syllabic>single</syllabic>
+          <text>the</text>
         </lyric>
       </note>
       <note>
@@ -2008,8 +2008,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>Mo</text>
+          <syllabic>single</syllabic>
+          <text>dark</text>
         </lyric>
       </note>
       <note>
@@ -2023,8 +2023,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>de</text>
+          <syllabic>single</syllabic>
+          <text>of</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -2177,8 +2177,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>streng</text>
+          <syllabic>single</syllabic>
+          <text>doubt</text>
         </lyric>
       </note>
       <note>
@@ -2192,8 +2192,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>ge</text>
+          <syllabic>begin</syllabic>
+          <text>a</text>
         </lyric>
       </note>
       <note>
@@ -2208,7 +2208,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>end</syllabic>
-          <text>teilt;</text>
+          <text>way;</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -2330,7 +2330,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>begin</syllabic>
-          <text>Al</text>
+          <text>Giv</text>
         </lyric>
       </note>
       <note>
@@ -2346,7 +2346,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>end</syllabic>
-          <text>le</text>
+          <text>er</text>
         </lyric>
       </note>
       <note>
@@ -2360,8 +2360,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>Men</text>
+          <syllabic>single</syllabic>
+          <text>of</text>
         </lyric>
       </note>
       <note>
@@ -2375,8 +2375,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>schen</text>
+          <syllabic>begin</syllabic>
+          <text>im</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -2528,8 +2528,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>wer</text>
+          <syllabic>middle</syllabic>
+          <text>mor</text>
         </lyric>
       </note>
       <note>
@@ -2544,7 +2544,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>end</syllabic>
-          <text>den</text>
+          <text>tal</text>
         </lyric>
       </note>
       <note>
@@ -2559,8 +2559,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>Brü</text>
+          <syllabic>begin</syllabic>
+          <text>glad</text>
         </lyric>
       </note>
       <note>
@@ -2575,7 +2575,7 @@
         <staff>1</staff>
         <lyric number="1">
           <syllabic>end</syllabic>
-          <text>der,</text>
+          <text>ness,</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -2728,8 +2728,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>wo</text>
+          <syllabic>single</syllabic>
+          <text>Fill</text>
         </lyric>
       </note>
       <note>
@@ -2743,8 +2743,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>dein</text>
+          <syllabic>single</syllabic>
+          <text>us</text>
         </lyric>
       </note>
       <note>
@@ -2758,8 +2758,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>sanf</text>
+          <syllabic>single</syllabic>
+          <text>with</text>
         </lyric>
       </note>
       <note>
@@ -2774,8 +2774,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>ter</text>
+          <syllabic>single</syllabic>
+          <text>the</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
@@ -2930,8 +2930,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>begin</syllabic>
-          <text>Flü</text>
+          <syllabic>single</syllabic>
+          <text>light</text>
         </lyric>
       </note>
       <note>
@@ -2945,8 +2945,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>middle</syllabic>
-          <text>gel</text>
+          <syllabic>single</syllabic>
+          <text>of</text>
         </lyric>
       </note>
       <note>
@@ -2960,8 +2960,8 @@
         <stem>up</stem>
         <staff>1</staff>
         <lyric number="1">
-          <syllabic>end</syllabic>
-          <text>weilt.</text>
+          <syllabic>single</syllabic>
+          <text>day!</text>
         </lyric>
       </note>
       <backup><duration>16</duration></backup>
