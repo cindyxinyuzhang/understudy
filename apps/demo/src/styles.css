@@ -62,6 +62,19 @@ h2 {
   color: var(--us-cream);
 }
 
+.logo-button {
+  flex: none;
+  padding: 4px;
+  margin: -4px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+}
+
+.logo-button:hover {
+  background: var(--us-cream-12);
+}
+
 .logo {
   display: block;
   width: 140px;
@@ -201,8 +214,8 @@ h2 {
   width: min(360px, calc(100vw - 32px));
   padding: 20px 22px;
   border-radius: var(--us-radius-preset);
-  background: var(--us-cream);
-  color: var(--us-ink);
+  background: var(--us-ink);
+  color: var(--us-cream);
   box-shadow: var(--us-shadow-panel);
   font-size: 15px;
   text-align: left;
@@ -211,6 +224,12 @@ h2 {
 .help-panel h2 {
   font-size: 22px;
   margin-bottom: 8px;
+}
+
+/* Same colourway as the header: cream on ink, softer cream for the small print. */
+.help-panel li::marker {
+  color: var(--us-accent);
+  font-weight: 700;
 }
 
 .help-panel ol {
@@ -223,7 +242,7 @@ h2 {
 
 .help-panel p {
   margin: 12px 0 0;
-  color: var(--us-muted);
+  color: var(--us-cream-70);
   font-size: 14px;
 }
 

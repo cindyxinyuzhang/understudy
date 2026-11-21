@@ -418,7 +418,13 @@ export function App() {
     <div className="app">
       <div className="masthead">
         <header className="topbar">
-          <img className="logo" src={logoUrl} width={140} alt="Understudy" />
+          <button
+            className="logo-button"
+            title="Back to the Ode to Joy demo"
+            onClick={() => void loadScore(SAMPLE_URL, 'Sample score')}
+          >
+            <img className="logo" src={logoUrl} width={140} alt="Understudy: back to the Ode to Joy demo" />
+          </button>
 
           <p className="score-heading">
             <span className="score-title">{title || (loading ? 'Loading…' : 'No score')}</span>
