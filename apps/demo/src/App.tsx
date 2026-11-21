@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 
-import { Player, type PlayMode } from './audio'
+import { Player, type Levels } from './audio'
 import logoUrl from './assets/brand/logo-on-dark.svg'
 import sampleUrl from './assets/sample.musicxml?url'
 import { findParts } from './parts'
@@ -47,22 +47,25 @@ const PART_COLOURS = [
 
 const SATB = ['Soprano', 'Alto', 'Tenor', 'Bass']
 
-const MODES: { mode: PlayMode; label: string }[] = [
-  { mode: 'mine', label: 'Just me' },
-  { mode: 'others', label: 'Without me' },
-  { mode: 'all', label: 'Everyone' },
-]
-
 const TEMPO = { min: 50, max: 160, step: 4 }
 
+/** Whether something is heard, and how loud: volume is the slider's 0-100. */
+type Mix = { on: boolean; volume: number }
+
+const FULL: Mix = { on: true, volume: 100 }
+
+/** Slider position to synth velocity; squared, so the slider's middle sounds like the middle. */
+const levelOf = (mix: Mix) => (mix.on ? (mix.volume / 100) ** 2 : 0)
+
 /** A singer's part as the user has marked it out. The score file knows nothing about these. */
-type Part = { id: string; name: string; colour: string }
+type Part = { id: string; name: string; colour: string } & Mix
 
 let nextPartId = 1
 const newPart = (name: string, index: number): Part => ({
   id: `part-${nextPartId++}`,
   name,
   colour: PART_COLOURS[index % PART_COLOURS.length]!,
+  ...FULL,
 })
 
 export function App() {
@@ -82,7 +85,8 @@ export function App() {
   const [activePartId, setActivePartId] = useState<string | null>(null)
   const [myPartId, setMyPartId] = useState<string | null>(null)
 
-  const [mode, setMode] = useState<PlayMode>('all')
+  /** Notes no part has claimed. */
+  const [others, setOthers] = useState<Mix>(FULL)
   const [playing, setPlaying] = useState(false)
   const [bpm, setBpm] = useState(100)
   /** Indices into model.bars, inclusive. */
@@ -165,7 +169,7 @@ export function App() {
         setOwner(new Map())
         setActivePartId(null)
         setMyPartId(null)
-        setMode('all')
+        setOthers(FULL)
         const laidOut = layoutRef.current()
         setRange({ from: 0, to: Math.max(0, (laidOut?.bars.length ?? 1) - 1) })
       } catch (err) {
@@ -187,17 +191,6 @@ export function App() {
     player.setScore(model.notes)
   }, [model, player])
 
-  const mine = useMemo(() => {
-    const ids = new Set<string>()
-    if (myPartId) for (const [noteId, partId] of owner) if (partId === myPartId) ids.add(noteId)
-    return ids
-  }, [owner, myPartId])
-
-  // Hearing "just me" with nothing marked as mine would be silence; fall back.
-  const effectiveMode: PlayMode = mine.size === 0 ? 'all' : mode
-
-  useEffect(() => player.setMine(mine), [mine, player])
-  useEffect(() => player.setMode(effectiveMode), [effectiveMode, player])
 
   const bars = model?.bars ?? []
   const fromBar = bars[range.from]
@@ -214,6 +207,18 @@ export function App() {
   useEffect(() => () => player.dispose(), [player])
 
   const partById = useMemo(() => new Map(parts.map((l) => [l.id, l])), [parts])
+
+  const levels = useMemo<Levels>(() => {
+    const byNote = new Map<string, number>()
+    for (const [noteId, partId] of owner) {
+      const part = partById.get(partId)
+      if (part) byNote.set(noteId, levelOf(part))
+    }
+    return { byNote, rest: levelOf(others) }
+  }, [owner, partById, others])
+  useEffect(() => player.setLevels(levels), [levels, player])
+
+  const unclaimed = model ? model.notes.filter((n) => !partById.has(owner.get(n.id) ?? '')).length : 0
   // Notes take their part's colour on the engraving itself. OSMD's SVG is not React's,
   // so this writes straight to it; a re-layout makes a new model and repaints.
   useEffect(() => {
@@ -267,8 +272,10 @@ export function App() {
     if (myPartId === id) setMyPartId(null)
   }
 
-  const renamePart = (id: string, name: string) =>
-    setParts((prev) => prev.map((l) => (l.id === id ? { ...l, name } : l)))
+  const updatePart = (id: string, patch: Partial<Part>) =>
+    setParts((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+
+  const renamePart = (id: string, name: string) => updatePart(id, { name })
 
   /**
    * Click hands one note to the part being marked; clicking it again takes it back.
@@ -512,8 +519,24 @@ export function App() {
                       >
                         ×
                       </button>
+                      <MixControls
+                        name={part.name || 'this part'}
+                        mix={part}
+                        onChange={(patch) => updatePart(part.id, patch)}
+                      />
                     </li>
                   ))}
+                  {unclaimed > 0 && (
+                    <li className="part others" style={{ '--part': 'var(--us-muted)' } as CSSProperties}>
+                      <span className="dot" />
+                      <span className="part-name">Other notes</span>
+                      <MixControls
+                        name="other notes"
+                        mix={others}
+                        onChange={(patch) => setOthers((m) => ({ ...m, ...patch }))}
+                      />
+                    </li>
+                  )}
                 </ul>
                 <div className="links">
                   <button className="link" onClick={() => addParts([`Part ${parts.length + 1}`])}>
@@ -546,25 +569,6 @@ export function App() {
             >
               {playing ? <StopIcon /> : <PlayIcon />}
             </button>
-
-            <div className="control-group" role="group" aria-labelledby="hear-label">
-              <span className="label" id="hear-label">
-                Hear
-              </span>
-              <div className="segmented">
-                {MODES.map(({ mode: m, label }) => (
-                  <button
-                    key={m}
-                    aria-pressed={effectiveMode === m}
-                    disabled={m !== 'all' && mine.size === 0}
-                    onClick={() => setMode(m)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {mine.size === 0 && <span className="small">Pick your part to hear it alone</span>}
-            </div>
 
             <button
               className="round loop"
@@ -605,6 +609,42 @@ export function App() {
           </section>
         </aside>
       </div>
+    </div>
+  )
+}
+
+/** A part's on/off and volume, on its own line under the part's name. */
+function MixControls({
+  name,
+  mix,
+  onChange,
+}: {
+  name: string
+  mix: Mix
+  onChange: (patch: Partial<Mix>) => void
+}) {
+  return (
+    // Its own clicks shouldn't also pick the part for marking.
+    <div className="mix" onClick={(event) => event.stopPropagation()}>
+      <button
+        className="speaker"
+        aria-label={`Play ${name}`}
+        aria-pressed={mix.on}
+        title={mix.on ? `Playing ${name}` : `${name}: off`}
+        onClick={() => onChange({ on: !mix.on })}
+      >
+        <SpeakerIcon on={mix.on} />
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={5}
+        value={mix.volume}
+        disabled={!mix.on}
+        aria-label={`Volume of ${name}`}
+        onChange={(event) => onChange({ volume: Number(event.target.value) })}
+      />
     </div>
   )
 }
@@ -662,6 +702,22 @@ function RepeatButton({
     >
       {children}
     </button>
+  )
+}
+
+function SpeakerIcon({ on }: { on: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor" />
+      {on ? (
+        <>
+          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+          <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+        </>
+      ) : (
+        <path d="m16 9 6 6M22 9l-6 6" />
+      )}
+    </svg>
   )
 }
 

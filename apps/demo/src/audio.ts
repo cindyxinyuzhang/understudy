@@ -1,17 +1,14 @@
 import * as Tone from 'tone'
 import type { ScoreNote } from './score'
 
-export type PlayMode = 'mine' | 'others' | 'all'
-
 /** The stretch of music to play, in quarter notes from the start of the piece. */
 export type Span = { start: number; end: number }
 
-/** Which notes sound in each mode, given the set the user has claimed. */
-function sounds(note: ScoreNote, mode: PlayMode, mine: ReadonlySet<string>): boolean {
-  if (mode === 'all') return true
-  const isMine = mine.has(note.id)
-  return mode === 'mine' ? isMine : !isMine
-}
+/**
+ * How loud each note plays, 0 (silent) to 1. Notes not in `byNote` play at `rest`,
+ * which covers notes no part has claimed.
+ */
+export type Levels = { byNote: ReadonlyMap<string, number>; rest: number }
 
 /** Tone.Part reads each event's `time`; the note rides along beside it. */
 type ScheduledNote = { time: string; note: ScoreNote }
@@ -23,10 +20,10 @@ type Handlers = {
 }
 
 /**
- * Playback is one Tone.Part over every note in the score. Muting is decided in
- * the callback rather than by rebuilding the schedule, so switching between
- * "my part" and "everything" mid-phrase keeps perfect time — and so the
- * highlight keeps tracking the music even for voices you have silenced.
+ * Playback is one Tone.Part over every note in the score. Each note's level is
+ * read in the callback rather than baked into the schedule, so muting a part or
+ * moving its volume mid-phrase keeps perfect time — and the highlight keeps
+ * tracking the music even for parts you have silenced.
  *
  * The bar range works the same way: the Part always holds the whole piece, the
  * callback skips notes outside the span, and looping is the Transport's own loop.
@@ -40,8 +37,7 @@ export class Player {
   private endEvent: number | null = null
   private started = false
 
-  private mode: PlayMode = 'all'
-  private mine: ReadonlySet<string> = new Set()
+  private levels: Levels = { byNote: new Map(), rest: 1 }
   private span: Span = { start: 0, end: 0 }
   private loop = false
 
@@ -67,24 +63,22 @@ export class Player {
     this.part = new Tone.Part<ScheduledNote>((time, { note }) => {
       const { start, end } = this.span
       if (note.start < start || note.start >= end) return
-      if (!sounds(note, this.mode, this.mine)) return
+      const level = this.levels.byNote.get(note.id) ?? this.levels.rest
       const secondsPerQuarter = 60 / Tone.getTransport().bpm.value
       // Cut at the end of the span so a loop restarts clean, and shorten very
       // slightly so repeated pitches re-articulate instead of blurring.
       const quarters = Math.min(note.duration, end - note.start)
-      this.synth?.triggerAttackRelease(note.freq, quarters * secondsPerQuarter * 0.92, time)
+      if (level > 0) {
+        this.synth?.triggerAttackRelease(note.freq, quarters * secondsPerQuarter * 0.92, time, level)
+      }
       Tone.getDraw().schedule(() => this.handlers.onNoteOn(note), time)
     }, notes.map((note) => ({ time: quartersToTransportTime(note.start), note })))
 
     this.part.start(0)
   }
 
-  setMode(mode: PlayMode): void {
-    this.mode = mode
-  }
-
-  setMine(mine: ReadonlySet<string>): void {
-    this.mine = mine
+  setLevels(levels: Levels): void {
+    this.levels = levels
   }
 
   setTempo(bpm: number): void {
