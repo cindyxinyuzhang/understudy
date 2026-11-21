@@ -301,6 +301,32 @@ input:focus-visible,
   color: var(--on-burgundy);
 }
 
+.bar-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bar-range select {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 3px 6px;
+  min-width: 4em;
+}
+
+.bar-range .link {
+  margin-left: auto;
+  align-self: center;
+}
+
+.bar-shade {
+  fill: color-mix(in srgb, var(--brass) 12%, transparent);
+  pointer-events: none;
+}
+
 .transport input[type="range"] {
   width: 100%;
   accent-color: var(--burgundy);

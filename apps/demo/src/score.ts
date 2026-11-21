@@ -26,8 +26,19 @@ export type ScoreNote = {
   box: { x: number; y: number; w: number; h: number }
 }
 
+export type Bar = {
+  /** As printed. */
+  number: number
+  /** Quarter notes from the start of the piece. */
+  start: number
+  end: number
+  /** Pixel box spanning every staff of this bar, for shading a chosen range. */
+  box: { x: number; y: number; w: number; h: number } | null
+}
+
 export type ScoreModel = {
   notes: ScoreNote[]
+  bars: Bar[]
   /** Quarter notes in the whole excerpt. */
   length: number
   /** Pixel size of the rendered engraving. */
@@ -141,7 +152,17 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
     h: svg ? Number(svg.getAttribute('height')) || svg.clientHeight : 0,
   }
 
-  return { notes, length, size }
+  const bars: Bar[] = osmd.Sheet.SourceMeasures.map((source, i) => {
+    const start = source.AbsoluteTimestamp.RealValue * 4
+    return {
+      number: source.MeasureNumber,
+      start,
+      end: start + source.Duration.RealValue * 4,
+      box: barBox(graphic.MeasureList[i] ?? [], scale),
+    }
+  })
+
+  return { notes, bars, length, size }
 }
 
 type Box = ScoreNote['box']
@@ -165,4 +186,31 @@ function noteheadBox(gNote: GraphicalNote, origin: DOMRect | null): Box | null {
 function fallbackBox(gNote: GraphicalNote, scale: number): Box {
   const at = gNote.PositionAndShape.AbsolutePosition
   return { x: at.x * scale - 6, y: at.y * scale - 5, w: 12, h: 10 }
+}
+
+/** Union of one bar's staff boxes; a bar never breaks across systems, so it is one rectangle. */
+function barBox(staves: ({ PositionAndShape: BoundingBoxLike } | undefined)[], scale: number): Box | null {
+  let x0 = Infinity
+  let y0 = Infinity
+  let x1 = -Infinity
+  let y1 = -Infinity
+  for (const staff of staves) {
+    if (!staff) continue
+    const bb = staff.PositionAndShape
+    const at = bb.AbsolutePosition
+    x0 = Math.min(x0, at.x + bb.BorderLeft)
+    x1 = Math.max(x1, at.x + bb.BorderRight)
+    y0 = Math.min(y0, at.y + bb.BorderTop)
+    y1 = Math.max(y1, at.y + bb.BorderBottom)
+  }
+  if (!Number.isFinite(x0) || x1 <= x0 || y1 <= y0) return null
+  return { x: x0 * scale, y: y0 * scale, w: (x1 - x0) * scale, h: (y1 - y0) * scale }
+}
+
+type BoundingBoxLike = {
+  AbsolutePosition: { x: number; y: number }
+  BorderLeft: number
+  BorderRight: number
+  BorderTop: number
+  BorderBottom: number
 }

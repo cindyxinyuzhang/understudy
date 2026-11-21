@@ -49,6 +49,9 @@ export function App() {
   const [mode, setMode] = useState<PlayMode>('all')
   const [playing, setPlaying] = useState(false)
   const [bpm, setBpm] = useState(100)
+  /** Indices into model.bars, inclusive. */
+  const [range, setRange] = useState({ from: 0, to: 0 })
+  const [loop, setLoop] = useState(false)
   const currentBpm = useRef(bpm)
 
   // The highlight is set straight on the DOM from Tone's draw callback: a React
@@ -121,7 +124,8 @@ export function App() {
         setActiveLineId(null)
         setMyLineId(null)
         setMode('all')
-        layoutRef.current()
+        const laidOut = layoutRef.current()
+        setRange({ from: 0, to: Math.max(0, (laidOut?.bars.length ?? 1) - 1) })
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
       } finally {
@@ -138,7 +142,7 @@ export function App() {
   useEffect(() => {
     if (!model) return
     player.stop()
-    player.setScore(model.notes, model.length)
+    player.setScore(model.notes)
   }, [model, player])
 
   const mine = useMemo(() => {
@@ -152,6 +156,15 @@ export function App() {
 
   useEffect(() => player.setMine(mine), [mine, player])
   useEffect(() => player.setMode(effectiveMode), [effectiveMode, player])
+
+  const bars = model?.bars ?? []
+  const fromBar = bars[range.from]
+  const toBar = bars[range.to]
+  const wholePiece = range.from === 0 && range.to === bars.length - 1
+  useEffect(() => {
+    if (fromBar && toBar) player.setSpan({ start: fromBar.start, end: toBar.end })
+  }, [fromBar, toBar, player])
+  useEffect(() => player.setLoop(loop), [loop, player])
   useEffect(() => {
     currentBpm.current = bpm
     player.setTempo(bpm)
@@ -349,6 +362,61 @@ export function App() {
                 <span className="small">Mark a line as yours to hear it alone.</span>
               )}
             </div>
+            <div className="control-group">
+              <span className="label">Bars</span>
+              <div className="bar-range">
+                <select
+                  aria-label="From bar"
+                  value={range.from}
+                  disabled={bars.length === 0}
+                  onChange={(event) => {
+                    const from = Number(event.target.value)
+                    setRange((r) => ({ from, to: Math.max(from, r.to) }))
+                  }}
+                >
+                  {bars.map((bar, i) => (
+                    <option key={i} value={i}>
+                      {bar.number}
+                    </option>
+                  ))}
+                </select>
+                <span>to</span>
+                <select
+                  aria-label="To bar"
+                  value={range.to}
+                  disabled={bars.length === 0}
+                  onChange={(event) => {
+                    const to = Number(event.target.value)
+                    setRange((r) => ({ from: Math.min(r.from, to), to }))
+                  }}
+                >
+                  {bars.map((bar, i) => (
+                    <option key={i} value={i}>
+                      {bar.number}
+                    </option>
+                  ))}
+                </select>
+                {!wholePiece && (
+                  <button
+                    className="link"
+                    onClick={() => setRange({ from: 0, to: bars.length - 1 })}
+                  >
+                    Whole piece
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="control-group">
+              <span className="label">At the end</span>
+              <div className="segmented">
+                <button className={loop ? '' : 'on'} onClick={() => setLoop(false)}>
+                  Stop
+                </button>
+                <button className={loop ? 'on' : ''} onClick={() => setLoop(true)}>
+                  Loop
+                </button>
+              </div>
+            </div>
             <label className="control-group">
               <span className="label">
                 Tempo <span className="value">{bpm}</span>
@@ -377,6 +445,20 @@ export function App() {
                 height={model.size.h}
                 viewBox={`0 0 ${model.size.w} ${model.size.h}`}
               >
+                {!wholePiece &&
+                  bars.slice(range.from, range.to + 1).map(
+                    (bar) =>
+                      bar.box && (
+                        <rect
+                          key={`bar-${bar.number}-${bar.start}`}
+                          className="bar-shade"
+                          x={bar.box.x}
+                          y={bar.box.y}
+                          width={bar.box.w}
+                          height={bar.box.h}
+                        />
+                      ),
+                  )}
                 {model.notes.map((note) => {
                   const line = lineById.get(owner.get(note.id) ?? '')
                   const cls = ['note', line && 'owned', line && line.id === myLineId && 'mine']
@@ -388,6 +470,7 @@ export function App() {
                         else rectsRef.current.delete(note.id)
                       }}
                       className={cls.filter(Boolean).join(' ')}
+                      data-bar={note.measure}
                       style={line ? ({ '--line': line.colour } as CSSProperties) : undefined}
                       x={note.box.x - 3}
                       y={note.box.y - 3}

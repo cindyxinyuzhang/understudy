@@ -3,6 +3,9 @@ import type { ScoreNote } from './score'
 
 export type PlayMode = 'mine' | 'others' | 'all'
 
+/** The stretch of music to play, in quarter notes from the start of the piece. */
+export type Span = { start: number; end: number }
+
 /** Which notes sound in each mode, given the set the user has claimed. */
 function sounds(note: ScoreNote, mode: PlayMode, mine: ReadonlySet<string>): boolean {
   if (mode === 'all') return true
@@ -24,18 +27,23 @@ type Handlers = {
  * the callback rather than by rebuilding the schedule, so switching between
  * "my part" and "everything" mid-phrase keeps perfect time — and so the
  * highlight keeps tracking the music even for voices you have silenced.
+ *
+ * The bar range works the same way: the Part always holds the whole piece, the
+ * callback skips notes outside the span, and looping is the Transport's own loop.
+ * So the span and the loop switch can both change while the music plays.
  */
 export class Player {
   private part: Tone.Part<ScheduledNote> | null = null
   private synth: Tone.PolySynth | null = null
   private gain: Tone.Gain | null = null
-  /** The "piece is over" event, kept so a restart can clear it without touching the notes. */
+  /** The "span is over" event, kept so it can move without touching the notes. */
   private endEvent: number | null = null
   private started = false
 
   private mode: PlayMode = 'all'
   private mine: ReadonlySet<string> = new Set()
-  private lengthQuarters = 0
+  private span: Span = { start: 0, end: 0 }
+  private loop = false
 
   constructor(private handlers: Handlers) {}
 
@@ -46,9 +54,8 @@ export class Player {
     this.started = true
   }
 
-  setScore(notes: ScoreNote[], lengthQuarters: number): void {
+  setScore(notes: ScoreNote[]): void {
     this.dispose()
-    this.lengthQuarters = lengthQuarters
 
     this.gain = new Tone.Gain(0.25).toDestination()
     this.synth = new Tone.PolySynth(Tone.Synth, {
@@ -58,11 +65,14 @@ export class Player {
     this.synth.maxPolyphony = 32
 
     this.part = new Tone.Part<ScheduledNote>((time, { note }) => {
+      const { start, end } = this.span
+      if (note.start < start || note.start >= end) return
       if (!sounds(note, this.mode, this.mine)) return
       const secondsPerQuarter = 60 / Tone.getTransport().bpm.value
-      // Shorten very slightly so repeated pitches re-articulate instead of blurring.
-      const held = note.duration * secondsPerQuarter * 0.92
-      this.synth?.triggerAttackRelease(note.freq, held, time)
+      // Cut at the end of the span so a loop restarts clean, and shorten very
+      // slightly so repeated pitches re-articulate instead of blurring.
+      const quarters = Math.min(note.duration, end - note.start)
+      this.synth?.triggerAttackRelease(note.freq, quarters * secondsPerQuarter * 0.92, time)
       Tone.getDraw().schedule(() => this.handlers.onNoteOn(note), time)
     }, notes.map((note) => ({ time: quartersToTransportTime(note.start), note })))
 
@@ -81,26 +91,32 @@ export class Player {
     Tone.getTransport().bpm.value = bpm
   }
 
+  /** Takes effect immediately if playing: the loop points and the end move with it. */
+  setSpan(span: Span): void {
+    this.span = span
+    this.applySpan()
+  }
+
+  setLoop(loop: boolean): void {
+    this.loop = loop
+    this.applySpan()
+  }
+
   async play(bpm: number): Promise<void> {
     await this.unlock()
     const transport = Tone.getTransport()
     transport.bpm.value = bpm
     transport.stop()
-    transport.position = 0
-    // Clear only our own end marker. transport.cancel() would also wipe the notes
-    // the Part scheduled, and a started Part does not reschedule them on start().
-    this.clearEnd()
-    // One bar of tail so the final chord can ring before everything is torn down.
-    this.endEvent = transport.scheduleOnce(() => {
-      Tone.getDraw().schedule(() => this.stop(), Tone.now())
-    }, quartersToTransportTime(this.lengthQuarters + 4))
+    transport.position = quartersToTransportTime(this.span.start)
+    this.setLoopPoints()
+    this.scheduleEnd()
     transport.start()
   }
 
   stop(): void {
     const transport = Tone.getTransport()
     transport.stop()
-    transport.position = 0
+    transport.loop = false
     this.clearEnd()
     this.synth?.releaseAll()
     this.handlers.onStop()
@@ -114,6 +130,41 @@ export class Player {
     this.gain?.dispose()
     this.synth = null
     this.gain = null
+  }
+
+  private setLoopPoints(): void {
+    const transport = Tone.getTransport()
+    transport.loopStart = quartersToTransportTime(this.span.start)
+    transport.loopEnd = quartersToTransportTime(this.span.end)
+    transport.loop = this.loop
+  }
+
+  /** Without a loop, the music stops itself half a beat after the span, so the last note's release is heard. */
+  private scheduleEnd(): void {
+    this.clearEnd()
+    if (this.loop) return
+    this.endEvent = Tone.getTransport().scheduleOnce(() => {
+      Tone.getDraw().schedule(() => this.stop(), Tone.now())
+    }, quartersToTransportTime(this.span.end + 0.5))
+  }
+
+  /** Re-aim a running playback at a changed span or loop setting. */
+  private applySpan(): void {
+    const transport = Tone.getTransport()
+    const { start, end } = this.span
+    if (end <= start || transport.state !== 'started') return
+    this.setLoopPoints()
+
+    // A span moved out from under the playhead: jump back in rather than run on.
+    const now = (transport.ticks / transport.PPQ) as number
+    if (now < start || now >= end) {
+      if (!this.loop) {
+        this.stop()
+        return
+      }
+      transport.position = quartersToTransportTime(start)
+    }
+    this.scheduleEnd()
   }
 
   private clearEnd(): void {
