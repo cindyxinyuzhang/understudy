@@ -109,6 +109,11 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
 
       for (const staffEntry of measure.staffEntries ?? []) {
         for (const voiceEntry of staffEntry.graphicalVoiceEntries ?? []) {
+          // A chord in one voice is one VexFlow note with several heads; rank each
+          // pitch from the top so it can be matched to its own head, not the chord's.
+          const byPitch = (voiceEntry.notes ?? [])
+            .filter((g) => g.sourceNote?.Pitch && !g.sourceNote.isRest())
+            .sort((a, b) => b.sourceNote.Pitch.Frequency - a.sourceNote.Pitch.Frequency)
           for (const gNote of voiceEntry.notes ?? []) {
             const source = gNote.sourceNote
             if (!source || source.isRest()) continue
@@ -124,7 +129,8 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
             const duration = (tie ? tie.Duration.RealValue : source.Length.RealValue) * 4
             if (duration <= 0) continue
 
-            const box = noteheadBox(gNote, origin) ?? fallbackBox(gNote, scale)
+            const box =
+              noteheadBox(gNote, byPitch.indexOf(gNote), origin) ?? fallbackBox(gNote, scale)
 
             const voice = source.ParentVoiceEntry?.ParentVoice?.VoiceId ?? 1
             const n = seq.get(voice) ?? 0
@@ -177,12 +183,13 @@ type Box = ScoreNote['box']
  * the notehead VexFlow actually drew. Chords share a stem but each notehead is
  * separate, which is what lets one note of a chord be claimed on its own.
  */
-function noteheadBox(gNote: GraphicalNote, origin: DOMRect | null): Box | null {
+function noteheadBox(gNote: GraphicalNote, rank: number, origin: DOMRect | null): Box | null {
   if (!origin || !(gNote instanceof VexFlowGraphicalNote)) return null
-  const heads = gNote.getNoteheadSVGs?.() ?? []
-  const el = heads[0] ?? gNote.getSVGGElement?.()
-  if (!el) return null
-  const r = el.getBoundingClientRect()
+  const heads = (gNote.getNoteheadSVGs?.() ?? [])
+    .map((el) => el.getBoundingClientRect())
+    .sort((a, b) => a.top - b.top)
+  const r = heads[rank] ?? heads[0] ?? gNote.getSVGGElement?.()?.getBoundingClientRect()
+  if (!r) return null
   if (r.width === 0 && r.height === 0) return null
   return { x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height }
 }
