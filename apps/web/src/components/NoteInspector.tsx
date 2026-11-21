@@ -3,7 +3,7 @@ import type { AnnotationRead, Note } from "@understudy/api-types";
 import { useDeleteAnnotation, useUpsertAnnotations } from "../lib/queries";
 import { midiToName } from "./SheetPage";
 
-const NOTE_SWATCHES = ["#f59e0b", "#e11d48", "#0ea5e9", "#16a34a", "#a855f7"];
+const NOTE_SWATCHES = ["#b8862b", "#8c2f39", "#3d6b73", "#4f6b3a", "#6b3f69"];
 
 /**
  * Per-note annotation: a colour and a note to self ("breathe", "watch the cut-off").

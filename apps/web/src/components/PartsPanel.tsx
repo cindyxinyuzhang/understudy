@@ -3,7 +3,7 @@ import type { Part } from "@understudy/api-types";
 import { useUpsertAnnotations } from "../lib/queries";
 import { useViewer } from "../state/viewer";
 
-const PART_SWATCHES = ["#e11d48", "#0ea5e9", "#16a34a", "#f59e0b", "#a855f7", "#14b8a6", "#64748b"];
+const PART_SWATCHES = ["#8c2f39", "#3d6b73", "#4f6b3a", "#b8862b", "#6b3f69", "#b5562f", "#7d6b5d"];
 
 /**
  * Voice parts as OMR found them: colour them, mute them, solo them.
@@ -43,7 +43,7 @@ export default function PartsPanel({
 
       <ul className="voice-list">
         {parts.map((part) => {
-          const color = partColors.get(part.id) ?? "#64748b";
+          const color = partColors.get(part.id) ?? "#7d6b5d";
           const soloed = soloPartIds.has(part.id);
           const muted = mutedPartIds.has(part.id);
           return (

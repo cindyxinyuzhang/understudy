@@ -1,18 +1,21 @@
 :root {
-  --bg: #0f1115;
-  --bg-raised: #171a21;
-  --bg-input: #1f232c;
-  --border: #2a2f3a;
-  --text: #e7e9ee;
-  --text-dim: #9aa2b1;
-  --accent: #7c8cff;
-  --accent-dim: #4a55a8;
-  --danger: #f2555a;
-  --ok: #3ecf8e;
-  --warn: #f0b429;
+  /* A lit concert hall: beige plaster, walnut text, burgundy seats, brass rails. */
+  --bg: #f1e8d8;
+  --bg-raised: #f9f3e8;
+  --bg-input: #ebe0cc;
+  --border: #d8c6a8;
+  --text: #2e1f15;
+  --text-dim: #7a6451;
+  --accent: #7d2633;
+  --accent-dim: #b98a6e;
+  --on-accent: #fbf4e8;
+  --brass: #a8802f;
+  --danger: #b3261e;
+  --ok: #4e7a3a;
+  --warn: #a8802f;
   --radius: 8px;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -48,7 +51,7 @@ button:disabled {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #0f1115;
+  color: var(--on-accent);
   font-weight: 600;
 }
 
@@ -88,7 +91,7 @@ a {
   align-items: center;
   gap: 16px;
   padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--brass);
   background: var(--bg-raised);
   position: sticky;
   top: 0;
@@ -292,7 +295,7 @@ a {
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  border: 1px solid rgb(255 255 255 / 20%);
+  border: 1px solid rgb(46 31 21 / 25%);
   padding: 0;
   flex: none;
 }
@@ -308,7 +311,7 @@ a {
 .chip.on {
   background: var(--accent);
   border-color: var(--accent);
-  color: #0f1115;
+  color: var(--on-accent);
   font-weight: 700;
 }
 
@@ -332,6 +335,7 @@ a {
   border: 1px solid var(--border);
   border-radius: 4px;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgb(46 31 21 / 12%);
 }
 
 .sheet-page img {
@@ -340,6 +344,8 @@ a {
   height: 100%;
   user-select: none;
   -webkit-user-drag: none;
+  /* Dark brown ink; the filter is defined once in ScoreSheet.tsx. */
+  filter: url(#sheet-ink);
 }
 
 .hit-layer {
@@ -374,8 +380,8 @@ a {
 }
 
 .marquee {
-  fill: color-mix(in srgb, #7c8cff 18%, transparent);
-  stroke: #7c8cff;
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: var(--accent);
   stroke-width: 1.5;
   stroke-dasharray: 5 3;
   pointer-events: none;
@@ -396,7 +402,7 @@ a {
 /* Currently sounding. Set as a DOM attribute from an animation frame rather than
    through React state — see audio/usePlayback.ts. */
 .hit-layer [data-playing="true"] .note-hit {
-  fill: color-mix(in srgb, #ffffff 70%, transparent);
-  stroke: #ffffff;
+  fill: color-mix(in srgb, var(--brass) 45%, transparent);
+  stroke: var(--brass);
   stroke-width: 2.5;
 }

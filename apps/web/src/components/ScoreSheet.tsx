@@ -48,6 +48,18 @@ export default function ScoreSheet({
 
   return (
     <div className="sheet" style={{ width: `${zoom * 100}%` }}>
+      {/* Recolours the page images' ink to dark brown, leaving the paper white. Pages
+          are rendered images, so their glyph colour can't be set any other way here.
+          Gamma > 1 keeps the near-black ink dark rather than washing it out. */}
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
+        <filter id="sheet-ink" colorInterpolationFilters="sRGB">
+          <feComponentTransfer>
+            <feFuncR type="gamma" amplitude={0.85} exponent={1.5} offset={0.15} />
+            <feFuncG type="gamma" amplitude={0.91} exponent={1.5} offset={0.09} />
+            <feFuncB type="gamma" amplitude={0.95} exponent={1.5} offset={0.05} />
+          </feComponentTransfer>
+        </filter>
+      </svg>
       {(index.doc.pages ?? []).map((page, i) => (
         <SheetPage
           key={page.index}

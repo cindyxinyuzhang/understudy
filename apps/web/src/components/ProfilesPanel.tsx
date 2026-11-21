@@ -8,7 +8,7 @@ import {
 } from "../lib/queries";
 import { useViewer } from "../state/viewer";
 
-const SWATCHES = ["#e11d48", "#0ea5e9", "#16a34a", "#f59e0b", "#a855f7", "#14b8a6"];
+const SWATCHES = ["#8c2f39", "#3d6b73", "#4f6b3a", "#b8862b", "#6b3f69", "#b5562f"];
 
 /**
  * The list of parts a user has built for this score, and the one clicks currently
