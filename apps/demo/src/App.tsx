@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 
 import { Player, type PlayMode } from './audio'
 import sampleUrl from './assets/sample.musicxml?url'
+import { findParts } from './parts'
 import { createOsmd, extractModel, type Palette, type ScoreModel, type ScoreNote } from './score'
 
 // Imported rather than served from public/ so the built file name carries a content
@@ -12,22 +13,22 @@ const SAMPLE_URL = sampleUrl
 // Kept in step with --ink and --paper in styles.css; OSMD needs literal colours.
 const PALETTE: Palette = { ink: '#2b1a10', paper: '#fbf5ea' }
 
-const LINE_COLOURS = ['#8c2f39', '#3d6b73', '#4f6b3a', '#b8862b', '#6b3f69', '#b5562f']
+const PART_COLOURS = ['#8c2f39', '#3d6b73', '#4f6b3a', '#b8862b', '#6b3f69', '#b5562f']
 
 const MODES: { mode: PlayMode; label: string }[] = [
-  { mode: 'mine', label: 'Just my line' },
+  { mode: 'mine', label: 'Just my part' },
   { mode: 'others', label: 'Everyone else' },
   { mode: 'all', label: 'Everyone' },
 ]
 
-/** A singer's line as the user has marked it out. The score file knows nothing about these. */
-type Line = { id: string; name: string; colour: string }
+/** A singer's part as the user has marked it out. The score file knows nothing about these. */
+type Part = { id: string; name: string; colour: string }
 
-let nextLineId = 1
-const newLine = (name: string, index: number): Line => ({
-  id: `line-${nextLineId++}`,
+let nextPartId = 1
+const newPart = (name: string, index: number): Part => ({
+  id: `part-${nextPartId++}`,
   name,
-  colour: LINE_COLOURS[index % LINE_COLOURS.length]!,
+  colour: PART_COLOURS[index % PART_COLOURS.length]!,
 })
 
 export function App() {
@@ -41,10 +42,10 @@ export function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [lines, setLines] = useState<Line[]>([])
+  const [parts, setParts] = useState<Part[]>([])
   const [owner, setOwner] = useState<ReadonlyMap<string, string>>(new Map())
-  const [activeLineId, setActiveLineId] = useState<string | null>(null)
-  const [myLineId, setMyLineId] = useState<string | null>(null)
+  const [activePartId, setActivePartId] = useState<string | null>(null)
+  const [myPartId, setMyPartId] = useState<string | null>(null)
 
   const [mode, setMode] = useState<PlayMode>('all')
   const [playing, setPlaying] = useState(false)
@@ -78,7 +79,7 @@ export function App() {
 
   // One OSMD for the page's lifetime; scores are loaded into it. Re-lay-out when the
   // width changes enough to move line breaks — note ids are structural, so the
-  // user's lines survive it.
+  // user's parts survive it.
   useEffect(() => {
     const container = scoreRef.current
     if (!container) return
@@ -121,10 +122,10 @@ export function App() {
       try {
         await osmd.load(content)
         setTitle(osmd.Sheet.TitleString?.trim() || fallbackTitle)
-        setLines([])
+        setParts([])
         setOwner(new Map())
-        setActiveLineId(null)
-        setMyLineId(null)
+        setActivePartId(null)
+        setMyPartId(null)
         setMode('all')
         const laidOut = layoutRef.current()
         setRange({ from: 0, to: Math.max(0, (laidOut?.bars.length ?? 1) - 1) })
@@ -149,9 +150,9 @@ export function App() {
 
   const mine = useMemo(() => {
     const ids = new Set<string>()
-    if (myLineId) for (const [noteId, lineId] of owner) if (lineId === myLineId) ids.add(noteId)
+    if (myPartId) for (const [noteId, partId] of owner) if (partId === myPartId) ids.add(noteId)
     return ids
-  }, [owner, myLineId])
+  }, [owner, myPartId])
 
   // Hearing "just me" with nothing marked as mine would be silence; fall back.
   const effectiveMode: PlayMode = mine.size === 0 ? 'all' : mode
@@ -173,46 +174,60 @@ export function App() {
   }, [bpm, player])
   useEffect(() => () => player.dispose(), [player])
 
-  const lineById = useMemo(() => new Map(lines.map((l) => [l.id, l])), [lines])
+  const partById = useMemo(() => new Map(parts.map((l) => [l.id, l])), [parts])
   const counts = useMemo(() => {
     const c = new Map<string, number>()
-    for (const lineId of owner.values()) c.set(lineId, (c.get(lineId) ?? 0) + 1)
+    for (const partId of owner.values()) c.set(partId, (c.get(partId) ?? 0) + 1)
     return c
   }, [owner])
 
-  const addLines = (names: string[]) => {
-    const added = names.map((name, i) => newLine(name, lines.length + i))
-    setLines((prev) => [...prev, ...added])
-    setActiveLineId(added[0]!.id)
-    if (!myLineId) setMyLineId(added[0]!.id)
+  const addParts = (names: string[]) => {
+    const added = names.map((name, i) => newPart(name, parts.length + i))
+    setParts((prev) => [...prev, ...added])
+    setActivePartId(added[0]!.id)
+    if (!myPartId) setMyPartId(added[0]!.id)
   }
 
-  const removeLine = (id: string) => {
-    setLines((prev) => prev.filter((l) => l.id !== id))
-    setOwner((prev) => new Map([...prev].filter(([, lineId]) => lineId !== id)))
-    if (activeLineId === id) setActiveLineId(null)
-    if (myLineId === id) setMyLineId(null)
+  /** Replace whatever parts exist with one per melodic line found in the score. */
+  const detectParts = () => {
+    if (!model) return
+    const found = findParts(model.notes)
+    if (found.length === 0) return
+    const made = found.map((f, i) => newPart(f.name, i))
+    const next = new Map<string, string>()
+    found.forEach((f, i) => f.noteIds.forEach((id) => next.set(id, made[i]!.id)))
+    setParts(made)
+    setOwner(next)
+    setActivePartId(made[0]!.id)
+    setMyPartId(made[0]!.id)
   }
 
-  const renameLine = (id: string, name: string) =>
-    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, name } : l)))
+  const removePart = (id: string) => {
+    setParts((prev) => prev.filter((l) => l.id !== id))
+    setOwner((prev) => new Map([...prev].filter(([, partId]) => partId !== id)))
+    if (activePartId === id) setActivePartId(null)
+    if (myPartId === id) setMyPartId(null)
+  }
+
+  const renamePart = (id: string, name: string) =>
+    setParts((prev) => prev.map((l) => (l.id === id ? { ...l, name } : l)))
 
   /**
-   * Click hands one note to the line being marked; clicking it again takes it back.
+   * Click hands one note to the part being marked; clicking it again takes it back.
    * Shift-click does the same for every note in that note's voice on that staff,
-   * which is usually exactly one singer's line in a closed score.
+   * which is usually exactly one singer's part in a closed score.
    */
   const assign = (note: ScoreNote, wholeVoice: boolean) => {
-    if (!activeLineId || !model) return
+    if (!activePartId || !model) return
     const targets = wholeVoice
       ? model.notes.filter((n) => n.staff === note.staff && n.voice === note.voice)
       : [note]
     setOwner((prev) => {
       const next = new Map(prev)
-      const release = targets.every((n) => prev.get(n.id) === activeLineId)
+      const release = targets.every((n) => prev.get(n.id) === activePartId)
       for (const n of targets) {
         if (release) next.delete(n.id)
-        else next.set(n.id, activeLineId)
+        else next.set(n.id, activePartId)
       }
       return next
     })
@@ -233,7 +248,7 @@ export function App() {
     await loadScore(content, file.name.replace(/\.[^.]+$/, ''))
   }
 
-  const activeLine = activeLineId ? lineById.get(activeLineId) : undefined
+  const activePart = activePartId ? partById.get(activePartId) : undefined
 
   /** The bar under a pointer, from the overlay's own coordinates (it is drawn 1:1 in px). */
   const barAt = (event: React.PointerEvent<SVGSVGElement>): number | null => {
@@ -279,7 +294,7 @@ export function App() {
         <p className="eyebrow">Understudy</p>
         <h1>Learn your part</h1>
         <p className="lede">
-          Bring a score, mark out who sings what, then hear your line alone, against the
+          Bring a score, mark out who sings what, then hear your part alone, against the
           others, or with them.
         </p>
       </header>
@@ -307,51 +322,57 @@ export function App() {
           </section>
 
           <section className="panel">
-            <h2>Lines</h2>
-            {lines.length === 0 ? (
+            <h2>Parts</h2>
+            {parts.length === 0 ? (
               <div className="empty">
-                <p>Name the lines in this score, then mark out which notes belong to each.</p>
+                <p>
+                  Let Understudy find the separate melodic lines, or name the parts yourself
+                  and mark out which notes belong to each.
+                </p>
+                <button className="primary" disabled={!model || loading} onClick={detectParts}>
+                  Find the parts for me
+                </button>
                 <div className="row">
-                  <button onClick={() => addLines(['Soprano', 'Alto', 'Tenor', 'Bass'])}>
+                  <button onClick={() => addParts(['Soprano', 'Alto', 'Tenor', 'Bass'])}>
                     Soprano, Alto, Tenor, Bass
                   </button>
-                  <button onClick={() => addLines(['Line 1'])}>One line</button>
+                  <button onClick={() => addParts(['Part 1'])}>One part</button>
                 </div>
               </div>
             ) : (
               <>
-                <ul className="lines">
-                  {lines.map((line) => (
+                <ul className="parts">
+                  {parts.map((part) => (
                     <li
-                      key={line.id}
-                      className={line.id === activeLineId ? 'line active' : 'line'}
-                      style={{ '--line': line.colour } as CSSProperties}
-                      onClick={() => setActiveLineId(line.id)}
+                      key={part.id}
+                      className={part.id === activePartId ? 'part active' : 'part'}
+                      style={{ '--part': part.colour } as CSSProperties}
+                      onClick={() => setActivePartId(part.id)}
                     >
                       <span className="swatch" />
                       <input
-                        className="line-name"
-                        value={line.name}
-                        aria-label="Line name"
-                        onChange={(event) => renameLine(line.id, event.target.value)}
+                        className="part-name"
+                        value={part.name}
+                        aria-label="Part name"
+                        onChange={(event) => renamePart(part.id, event.target.value)}
                       />
-                      <span className="count">{counts.get(line.id) ?? 0}</span>
+                      <span className="count">{counts.get(part.id) ?? 0}</span>
                       <button
-                        className={line.id === myLineId ? 'mine-toggle on' : 'mine-toggle'}
-                        title="This is the line I'm learning"
+                        className={part.id === myPartId ? 'mine-toggle on' : 'mine-toggle'}
+                        title="This is the part I'm learning"
                         onClick={(event) => {
                           event.stopPropagation()
-                          setMyLineId(line.id)
+                          setMyPartId(part.id)
                         }}
                       >
-                        {line.id === myLineId ? 'Mine' : 'Me?'}
+                        {part.id === myPartId ? 'Mine' : 'Me?'}
                       </button>
                       <button
                         className="remove"
-                        aria-label={`Remove ${line.name}`}
+                        aria-label={`Remove ${part.name}`}
                         onClick={(event) => {
                           event.stopPropagation()
-                          removeLine(line.id)
+                          removePart(part.id)
                         }}
                       >
                         ×
@@ -359,17 +380,22 @@ export function App() {
                     </li>
                   ))}
                 </ul>
-                <button className="link" onClick={() => addLines([`Line ${lines.length + 1}`])}>
-                  + Add a line
-                </button>
+                <div className="row">
+                  <button className="link" onClick={() => addParts([`Part ${parts.length + 1}`])}>
+                    + Add a part
+                  </button>
+                  <button className="link" onClick={detectParts}>
+                    Find the parts again
+                  </button>
+                </div>
                 <p className="hint">
-                  {activeLine ? (
+                  {activePart ? (
                     <>
-                      Marking <strong>{activeLine.name || 'this line'}</strong>. Click a note to
+                      Marking <strong>{activePart.name || 'this part'}</strong>. Click a note to
                       add or remove it; shift-click to take its whole voice on that staff.
                     </>
                   ) : (
-                    'Pick a line above to start marking notes.'
+                    'Pick a part above to start marking notes.'
                   )}
                 </p>
               </>
@@ -399,7 +425,7 @@ export function App() {
                 ))}
               </div>
               {mine.size === 0 && (
-                <span className="small">Mark a line as yours to hear it alone.</span>
+                <span className="small">Mark a part as yours to hear it alone.</span>
               )}
             </div>
             <div className="control-group">
@@ -481,7 +507,7 @@ export function App() {
             <div ref={scoreRef} className="score" />
             {model && !loading && (
               <svg
-                className={activeLineId ? 'overlay marking' : 'overlay'}
+                className={activePartId ? 'overlay marking' : 'overlay'}
                 onPointerDown={onBarDown}
                 onPointerMove={onBarMove}
                 onPointerUp={onBarUp}
@@ -518,8 +544,8 @@ export function App() {
                       ),
                   )}
                 {model.notes.map((note) => {
-                  const line = lineById.get(owner.get(note.id) ?? '')
-                  const cls = ['note', line && 'owned', line && line.id === myLineId && 'mine']
+                  const part = partById.get(owner.get(note.id) ?? '')
+                  const cls = ['note', part && 'owned', part && part.id === myPartId && 'mine']
                   return (
                     <rect
                       key={note.id}
@@ -529,7 +555,7 @@ export function App() {
                       }}
                       className={cls.filter(Boolean).join(' ')}
                       data-bar={note.measure}
-                      style={line ? ({ '--line': line.colour } as CSSProperties) : undefined}
+                      style={part ? ({ '--part': part.colour } as CSSProperties) : undefined}
                       x={note.box.x - 3}
                       y={note.box.y - 3}
                       width={note.box.w + 6}
@@ -537,7 +563,7 @@ export function App() {
                       rx={4}
                       onClick={(event) => assign(note, event.shiftKey)}
                     >
-                      <title>{line ? line.name : 'Unassigned'}</title>
+                      <title>{part ? part.name : 'Unassigned'}</title>
                     </rect>
                   )
                 })}

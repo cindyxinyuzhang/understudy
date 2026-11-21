@@ -145,8 +145,25 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.file-button {
+.file-button,
+.empty button {
   align-self: flex-start;
+}
+
+button.primary {
+  background: var(--burgundy);
+  border-color: var(--burgundy);
+  color: var(--on-burgundy);
+}
+
+button.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--burgundy) 88%, black);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .file-button input {
@@ -186,8 +203,8 @@ input:focus-visible,
   outline-offset: 2px;
 }
 
-/* --- lines ---------------------------------------------------------------- */
-.lines {
+/* --- parts ---------------------------------------------------------------- */
+.parts {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -196,7 +213,7 @@ input:focus-visible,
   gap: 4px;
 }
 
-.line {
+.part {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -206,20 +223,20 @@ input:focus-visible,
   cursor: pointer;
 }
 
-.line.active {
-  border-color: var(--line);
-  background: color-mix(in srgb, var(--line) 10%, transparent);
+.part.active {
+  border-color: var(--part);
+  background: color-mix(in srgb, var(--part) 10%, transparent);
 }
 
 .swatch {
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  background: var(--line);
+  background: var(--part);
   flex: none;
 }
 
-.line-name {
+.part-name {
   flex: 1;
   min-width: 0;
   border: none;
@@ -377,11 +394,11 @@ input:focus-visible,
 
 .note.owned,
 .overlay.marking .note.owned:hover {
-  fill: color-mix(in srgb, var(--line) 30%, transparent);
+  fill: color-mix(in srgb, var(--part) 30%, transparent);
 }
 
 .note.mine {
-  stroke: var(--line);
+  stroke: var(--part);
   stroke-width: 1.5;
 }
 
