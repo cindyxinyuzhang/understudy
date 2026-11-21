@@ -2,9 +2,12 @@ import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 import { Player, type PlayMode } from './audio'
+import sampleUrl from './assets/sample.musicxml?url'
 import { createOsmd, extractModel, type Palette, type ScoreModel, type ScoreNote } from './score'
 
-const SAMPLE_URL = `${import.meta.env.BASE_URL}sample.musicxml`
+// Imported rather than served from public/ so the built file name carries a content
+// hash: a regenerated sample can never be shadowed by a cached copy of the old one.
+const SAMPLE_URL = sampleUrl
 
 // Kept in step with --ink and --paper in styles.css; OSMD needs literal colours.
 const PALETTE: Palette = { ink: '#2b1a10', paper: '#fbf5ea' }

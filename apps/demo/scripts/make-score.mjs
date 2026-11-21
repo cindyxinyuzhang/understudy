@@ -1,4 +1,4 @@
-// Generates public/sample.musicxml — a 16-bar SATB setting of the "Ode to Joy"
+// Generates src/assets/sample.musicxml — a 16-bar SATB setting of the "Ode to Joy"
 // theme (Beethoven, Symphony No. 9 finale; public domain) in D major.
 //
 // The arrangement is kept deliberately homophonic: the lower voices mostly move
@@ -19,7 +19,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const OUT = resolve(HERE, '../public/sample.musicxml')
+const OUT = resolve(HERE, '../src/assets/sample.musicxml')
 
 // quarter = 4 divisions, so an eighth is 2 and a dotted quarter is 6.
 const DIVISIONS = 4
