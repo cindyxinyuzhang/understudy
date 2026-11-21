@@ -46,8 +46,11 @@ export type ScoreModel = {
 }
 
 export type Palette = {
+  /** Notes, clefs, lyrics. */
   ink: string
-  paper: string
+  /** The page the score sits on. */
+  ground: string
+  staffLine: string
 }
 
 export function createOsmd(container: HTMLElement, palette: Palette): OpenSheetMusicDisplay {
@@ -64,15 +67,17 @@ export function createOsmd(container: HTMLElement, palette: Palette): OpenSheetM
     drawPartAbbreviations: false,
     drawMeasureNumbers: true,
     drawLyrics: true,
-    // No white anywhere: the engraving is drawn in dark brown on warm paper.
+    // No white anywhere: the engraving sits straight on the page's ground colour.
     defaultColorMusic: palette.ink,
     defaultColorNotehead: palette.ink,
     defaultColorStem: palette.ink,
     defaultColorRest: palette.ink,
     defaultColorLabel: palette.ink,
     defaultColorTitle: palette.ink,
-    pageBackgroundColor: palette.paper,
+    pageBackgroundColor: palette.ground,
   })
+  osmd.EngravingRules.StaffLineColor = palette.staffLine
+  osmd.EngravingRules.LedgerLineColorDefault = palette.ink
   // A little under full size fits a four-bar phrase on each line at desktop widths,
   // which is how singers read a hymn tune; the overlay scales with it.
   osmd.zoom = 0.8

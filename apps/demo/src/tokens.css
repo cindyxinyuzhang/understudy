@@ -1,0 +1,42 @@
+/* Understudy design tokens (screen A5). Import once; use the variables everywhere. */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Surfaces & text. No white anywhere: the score sits straight on the ground. */
+  --us-ground: #E3E1D8;      /* page background, behind the score */
+  --us-deep: #D6D4CA;        /* quiet button fill ("Just my part") */
+  --us-ink: #24222B;         /* header bar, controls panel, primary buttons, text */
+  --us-muted: #5C5A63;       /* hints, secondary text */
+  --us-cream: #F4EFD3;       /* text and selected states on ink */
+  --us-cream-12: rgba(244, 239, 211, 0.12);  /* tracks and round buttons on ink */
+  --us-cream-70: rgba(244, 239, 211, 0.70);  /* small labels on ink */
+
+  /* Score engraving on the ground */
+  --us-staff-line: #A39F96;
+  --us-barline: #7E7A72;
+
+  /* Accent: Play button and the logo's notes */
+  --us-accent: #DB5F4E;
+
+  /* Part colours, one per part, used only for that part */
+  --us-part-soprano: #DB5F4E;
+  --us-part-alto: #3E70AE;
+  --us-part-tenor: #B8A63F;
+  --us-part-bass: #8A3470;
+  /* Extra parts, in this order */
+  --us-part-5: #4E807D;
+  --us-part-6: #BE6430;
+  --us-part-7: #458A5E;
+  --us-part-8: #BE5480;
+
+  /* Type */
+  --us-font-display: 'Fredoka', system-ui, sans-serif;  /* headings ("Who sings what?"), weight 500 */
+  --us-font-ui: 'Nunito', system-ui, sans-serif;        /* everything else, 400-700 */
+
+  /* Shape */
+  --us-radius-pill: 999px;   /* buttons, segmented controls, round buttons */
+  --us-radius-preset: 24px;  /* the SATB preset button */
+  --us-radius-panel: 40px;   /* the controls panel */
+  --us-hit: 44px;            /* minimum touch target */
+  --us-shadow-panel: 0 14px 40px rgba(36, 34, 43, 0.22);
+}

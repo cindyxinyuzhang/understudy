@@ -1,7 +1,16 @@
 import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay'
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 
 import { Player, type PlayMode } from './audio'
+import logoUrl from './assets/brand/logo-on-dark.svg'
 import sampleUrl from './assets/sample.musicxml?url'
 import { findParts } from './parts'
 import { createOsmd, extractModel, type Palette, type ScoreModel, type ScoreNote } from './score'
@@ -10,16 +19,41 @@ import { createOsmd, extractModel, type Palette, type ScoreModel, type ScoreNote
 // hash: a regenerated sample can never be shadowed by a cached copy of the old one.
 const SAMPLE_URL = sampleUrl
 
-// Kept in step with --ink and --paper in styles.css; OSMD needs literal colours.
-const PALETTE: Palette = { ink: '#2b1a10', paper: '#fbf5ea' }
+/**
+ * OSMD needs literal colours, so read them from tokens.css; the fallbacks match it.
+ * Barlines have no OSMD option and are coloured in styles.css instead.
+ */
+function readPalette(): Palette {
+  const css = getComputedStyle(document.documentElement)
+  const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback
+  return {
+    ink: token('--us-ink', '#24222B'),
+    ground: token('--us-ground', '#E3E1D8'),
+    staffLine: token('--us-staff-line', '#A39F96'),
+  }
+}
 
-const PART_COLOURS = ['#8c2f39', '#3d6b73', '#4f6b3a', '#b8862b', '#6b3f69', '#b5562f']
+// Used only through the --part custom property, so the tokens can stay as var()s.
+const PART_COLOURS = [
+  'var(--us-part-soprano)',
+  'var(--us-part-alto)',
+  'var(--us-part-tenor)',
+  'var(--us-part-bass)',
+  'var(--us-part-5)',
+  'var(--us-part-6)',
+  'var(--us-part-7)',
+  'var(--us-part-8)',
+]
+
+const SATB = ['Soprano', 'Alto', 'Tenor', 'Bass']
 
 const MODES: { mode: PlayMode; label: string }[] = [
-  { mode: 'mine', label: 'Just my part' },
-  { mode: 'others', label: 'Everyone else' },
+  { mode: 'mine', label: 'Just me' },
+  { mode: 'others', label: 'Without me' },
   { mode: 'all', label: 'Everyone' },
 ]
+
+const TEMPO = { min: 50, max: 160, step: 4 }
 
 /** A singer's part as the user has marked it out. The score file knows nothing about these. */
 type Part = { id: string; name: string; colour: string }
@@ -39,6 +73,7 @@ export function App() {
 
   const [model, setModel] = useState<ScoreModel | null>(null)
   const [title, setTitle] = useState('')
+  const [staffCount, setStaffCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -83,7 +118,7 @@ export function App() {
   useEffect(() => {
     const container = scoreRef.current
     if (!container) return
-    const osmd = createOsmd(container, PALETTE)
+    const osmd = createOsmd(container, readPalette())
     osmdRef.current = osmd
     layoutRef.current = () => {
       if (!osmd.Sheet) return null
@@ -107,6 +142,9 @@ export function App() {
       observer.disconnect()
       window.clearTimeout(timer)
       osmd.clear()
+      // clear() leaves OSMD's page divs behind; a remount (StrictMode, hot reload)
+      // would otherwise stack an empty page above the new one.
+      container.replaceChildren()
       osmdRef.current = null
     }
   }, [])
@@ -122,6 +160,7 @@ export function App() {
       try {
         await osmd.load(content)
         setTitle(osmd.Sheet.TitleString?.trim() || fallbackTitle)
+        setStaffCount(osmd.Sheet.Staves.length)
         setParts([])
         setOwner(new Map())
         setActivePartId(null)
@@ -201,6 +240,15 @@ export function App() {
     setActivePartId(made[0]!.id)
     setMyPartId(made[0]!.id)
   }
+
+  /** If the score splits into exactly four lines, hand them out; otherwise start with empty parts. */
+  const presetSatb = () => {
+    if (model && findParts(model.notes).length === SATB.length) detectParts()
+    else addParts(SATB)
+  }
+
+  const changeTempo = (direction: 1 | -1) =>
+    setBpm((b) => Math.min(TEMPO.max, Math.max(TEMPO.min, b + direction * TEMPO.step)))
 
   const removePart = (id: string) => {
     setParts((prev) => prev.filter((l) => l.id !== id))
@@ -288,57 +336,134 @@ export function App() {
     if (drag && !drag.moved && drag.wasOnlyThisBar) setRange({ from: 0, to: bars.length - 1 })
   }
 
+  const meta = model
+    ? [plural(staffCount, 'stave', 'staves'), plural(bars.length, 'bar', 'bars')].join(' · ')
+    : ''
+
   return (
-    <div className="hall">
-      <header className="masthead">
-        <p className="eyebrow">Understudy</p>
-        <h1>Learn your part</h1>
-        <p className="lede">
-          Bring a score, mark out who sings what, then hear your part alone, against the
-          others, or with them.
+    <div className="app">
+      <header className="topbar">
+        <img className="logo" src={logoUrl} width={140} alt="Understudy" />
+        <p className="score-heading">
+          <span className="score-title">{title || (loading ? 'Loading…' : 'No score')}</span>
+          {meta && <span className="score-meta"> · {meta}</span>}
         </p>
+        <label className="open-file">
+          <UploadIcon />
+          Open another score
+          <input
+            type="file"
+            accept=".musicxml,.xml,.mxl"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              event.target.value = ''
+              if (file) void openFile(file)
+            }}
+          />
+        </label>
       </header>
 
-      <div className="layout">
-        <aside className="sidebar">
-          <section className="panel">
-            <h2>Score</h2>
-            <p className="score-title">{title || '—'}</p>
-            <label className="file-button">
-              Open MusicXML…
-              <input
-                type="file"
-                accept=".musicxml,.xml,.mxl"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  event.target.value = ''
-                  if (file) void openFile(file)
-                }}
-              />
-            </label>
-            <button className="link" onClick={() => void loadScore(SAMPLE_URL, 'Sample score')}>
-              Back to the sample
-            </button>
-          </section>
+      <div className="main">
+        <main className="score-column">
+          <p className="score-hint">
+            Drag across bars to pick a section · click a note to move it between parts
+          </p>
+          {error && <p className="error">Couldn’t read that score: {error}</p>}
+          {loading && !error && <p className="loading">Setting out the music…</p>}
+          <div className="score-scroll">
+            <div className="score-frame">
+              <div ref={scoreRef} className="score" />
+              {model && !loading && (
+                <svg
+                  className={activePartId ? 'overlay marking' : 'overlay'}
+                  onPointerDown={onBarDown}
+                  onPointerMove={onBarMove}
+                  onPointerUp={onBarUp}
+                  onPointerCancel={onBarUp}
+                  width={model.size.w}
+                  height={model.size.h}
+                  viewBox={`0 0 ${model.size.w} ${model.size.h}`}
+                >
+                  {bars.map(
+                    (bar, i) =>
+                      bar.box && (
+                        <rect
+                          key={`hit-${i}`}
+                          className="bar-hit"
+                          x={bar.box.x}
+                          y={bar.box.y}
+                          width={bar.box.w}
+                          height={bar.box.h}
+                        />
+                      ),
+                  )}
+                  {!wholePiece &&
+                    bars.slice(range.from, range.to + 1).map(
+                      (bar) =>
+                        bar.box && (
+                          <rect
+                            key={`bar-${bar.number}-${bar.start}`}
+                            className="bar-shade"
+                            x={bar.box.x}
+                            y={bar.box.y}
+                            width={bar.box.w}
+                            height={bar.box.h}
+                          />
+                        ),
+                    )}
+                  {model.notes.map((note) => {
+                    const part = partById.get(owner.get(note.id) ?? '')
+                    const cls = ['note', part && 'owned', part && part.id === myPartId && 'mine']
+                    return (
+                      <rect
+                        key={note.id}
+                        ref={(el) => {
+                          if (el) rectsRef.current.set(note.id, el)
+                          else rectsRef.current.delete(note.id)
+                        }}
+                        className={cls.filter(Boolean).join(' ')}
+                        data-bar={note.measure}
+                        style={part ? ({ '--part': part.colour } as CSSProperties) : undefined}
+                        x={note.box.x - 3}
+                        y={note.box.y - 3}
+                        width={note.box.w + 6}
+                        height={note.box.h + 6}
+                        rx={4}
+                        onClick={(event) => assign(note, event.shiftKey)}
+                      >
+                        <title>{part ? part.name : 'Unassigned'}</title>
+                      </rect>
+                    )
+                  })}
+                </svg>
+              )}
+            </div>
+          </div>
+        </main>
 
-          <section className="panel">
-            <h2>Parts</h2>
+        <aside className="side" aria-label="Parts and playback">
+          <section className="who">
+            <h2>Who sings what?</h2>
             {parts.length === 0 ? (
-              <div className="empty">
-                <p>
-                  Let Understudy find the separate melodic lines, or name the parts yourself
-                  and mark out which notes belong to each.
-                </p>
-                <button className="primary" disabled={!model || loading} onClick={detectParts}>
-                  Find the parts for me
+              <>
+                <button className="preset-satb" disabled={!model || loading} onClick={presetSatb}>
+                  <span className="dots" aria-hidden="true">
+                    {SATB.map((name, i) => (
+                      <span key={name} className="dot" style={{ '--part': PART_COLOURS[i] } as CSSProperties} />
+                    ))}
+                  </span>
+                  Soprano, Alto, Tenor, Bass
                 </button>
-                <div className="row">
-                  <button onClick={() => addParts(['Soprano', 'Alto', 'Tenor', 'Bass'])}>
-                    Soprano, Alto, Tenor, Bass
-                  </button>
-                  <button onClick={() => addParts(['Part 1'])}>One part</button>
-                </div>
-              </div>
+                <button
+                  className="preset-mine"
+                  disabled={!model || loading}
+                  onClick={() => addParts(['My part'])}
+                >
+                  <span className="dot" aria-hidden="true" style={{ '--part': 'var(--us-accent)' } as CSSProperties} />
+                  Just my part
+                </button>
+                <p className="hint">You can change any note afterwards by clicking it.</p>
+              </>
             ) : (
               <>
                 <ul className="parts">
@@ -349,17 +474,20 @@ export function App() {
                       style={{ '--part': part.colour } as CSSProperties}
                       onClick={() => setActivePartId(part.id)}
                     >
-                      <span className="swatch" />
+                      <span className="dot" />
                       <input
                         className="part-name"
                         value={part.name}
                         aria-label="Part name"
                         onChange={(event) => renamePart(part.id, event.target.value)}
                       />
-                      <span className="count">{counts.get(part.id) ?? 0}</span>
+                      <span className="count" title="Notes in this part">
+                        {counts.get(part.id) ?? 0}
+                      </span>
                       <button
                         className={part.id === myPartId ? 'mine-toggle on' : 'mine-toggle'}
                         title="This is the part I'm learning"
+                        aria-pressed={part.id === myPartId}
                         onClick={(event) => {
                           event.stopPropagation()
                           setMyPartId(part.id)
@@ -380,7 +508,7 @@ export function App() {
                     </li>
                   ))}
                 </ul>
-                <div className="row">
+                <div className="links">
                   <button className="link" onClick={() => addParts([`Part ${parts.length + 1}`])}>
                     + Add a part
                   </button>
@@ -402,21 +530,25 @@ export function App() {
             )}
           </section>
 
-          <section className="panel transport">
+          <section className="controls">
             <button
               className="play"
+              aria-label={playing ? 'Stop' : 'Play'}
               disabled={!model || loading}
               onClick={() => void togglePlay()}
             >
-              {playing ? '■ Stop' : '▶ Play'}
+              {playing ? <StopIcon /> : <PlayIcon />}
             </button>
-            <div className="control-group">
-              <span className="label">Hear</span>
+
+            <div className="control-group" role="group" aria-labelledby="hear-label">
+              <span className="label" id="hear-label">
+                Hear
+              </span>
               <div className="segmented">
                 {MODES.map(({ mode: m, label }) => (
                   <button
                     key={m}
-                    className={effectiveMode === m ? 'on' : ''}
+                    aria-pressed={effectiveMode === m}
                     disabled={m !== 'all' && mine.size === 0}
                     onClick={() => setMode(m)}
                   >
@@ -424,159 +556,142 @@ export function App() {
                   </button>
                 ))}
               </div>
-              {mine.size === 0 && (
-                <span className="small">Mark a part as yours to hear it alone.</span>
-              )}
+              {mine.size === 0 && <span className="small">Pick your part to hear it alone</span>}
             </div>
-            <div className="control-group">
-              <span className="label">Bars</span>
-              <div className="bar-range">
-                <select
-                  aria-label="From bar"
-                  value={range.from}
-                  disabled={bars.length === 0}
-                  onChange={(event) => {
-                    const from = Number(event.target.value)
-                    setRange((r) => ({ from, to: Math.max(from, r.to) }))
-                  }}
-                >
-                  {bars.map((bar, i) => (
-                    <option key={i} value={i}>
-                      {bar.number}
-                    </option>
-                  ))}
-                </select>
-                <span>to</span>
-                <select
-                  aria-label="To bar"
-                  value={range.to}
-                  disabled={bars.length === 0}
-                  onChange={(event) => {
-                    const to = Number(event.target.value)
-                    setRange((r) => ({ from: Math.min(r.from, to), to }))
-                  }}
-                >
-                  {bars.map((bar, i) => (
-                    <option key={i} value={i}>
-                      {bar.number}
-                    </option>
-                  ))}
-                </select>
-                {!wholePiece && (
-                  <button
-                    className="link"
-                    onClick={() => setRange({ from: 0, to: bars.length - 1 })}
-                  >
-                    Whole piece
-                  </button>
-                )}
-              </div>
-              <span className="small">Or drag across bars on the score.</span>
-            </div>
-            <div className="control-group">
-              <span className="label">At the end</span>
-              <div className="segmented">
-                <button className={loop ? '' : 'on'} onClick={() => setLoop(false)}>
-                  Stop
-                </button>
-                <button className={loop ? 'on' : ''} onClick={() => setLoop(true)}>
-                  Loop
-                </button>
-              </div>
-            </div>
-            <label className="control-group">
-              <span className="label">
-                Tempo <span className="value">{bpm}</span>
+
+            <button
+              className="round loop"
+              aria-label="Loop"
+              aria-pressed={loop}
+              title={loop ? 'Loop: on' : 'Loop: off'}
+              onClick={() => setLoop((l) => !l)}
+            >
+              <LoopIcon />
+            </button>
+
+            <div className="control-group" role="group" aria-labelledby="tempo-label">
+              <span className="label" id="tempo-label">
+                Tempo
               </span>
-              <input
-                type="range"
-                min={50}
-                max={160}
-                step={2}
-                value={bpm}
-                onChange={(event) => setBpm(Number(event.target.value))}
-              />
-            </label>
+              <div className="tempo">
+                <RepeatButton
+                  className="round"
+                  label="Slower"
+                  disabled={bpm <= TEMPO.min}
+                  onStep={() => changeTempo(-1)}
+                >
+                  −
+                </RepeatButton>
+                <output className="bpm" aria-live="polite">
+                  {bpm}
+                </output>
+                <RepeatButton
+                  className="round"
+                  label="Faster"
+                  disabled={bpm >= TEMPO.max}
+                  onStep={() => changeTempo(1)}
+                >
+                  +
+                </RepeatButton>
+              </div>
+            </div>
           </section>
         </aside>
-
-        <main className="paper">
-          {error && <p className="error">Couldn’t read that score: {error}</p>}
-          {loading && !error && <p className="loading">Setting out the music…</p>}
-          <div className="score-frame">
-            <div ref={scoreRef} className="score" />
-            {model && !loading && (
-              <svg
-                className={activePartId ? 'overlay marking' : 'overlay'}
-                onPointerDown={onBarDown}
-                onPointerMove={onBarMove}
-                onPointerUp={onBarUp}
-                onPointerCancel={onBarUp}
-                width={model.size.w}
-                height={model.size.h}
-                viewBox={`0 0 ${model.size.w} ${model.size.h}`}
-              >
-                {bars.map(
-                  (bar, i) =>
-                    bar.box && (
-                      <rect
-                        key={`hit-${i}`}
-                        className="bar-hit"
-                        x={bar.box.x}
-                        y={bar.box.y}
-                        width={bar.box.w}
-                        height={bar.box.h}
-                      />
-                    ),
-                )}
-                {!wholePiece &&
-                  bars.slice(range.from, range.to + 1).map(
-                    (bar) =>
-                      bar.box && (
-                        <rect
-                          key={`bar-${bar.number}-${bar.start}`}
-                          className="bar-shade"
-                          x={bar.box.x}
-                          y={bar.box.y}
-                          width={bar.box.w}
-                          height={bar.box.h}
-                        />
-                      ),
-                  )}
-                {model.notes.map((note) => {
-                  const part = partById.get(owner.get(note.id) ?? '')
-                  const cls = ['note', part && 'owned', part && part.id === myPartId && 'mine']
-                  return (
-                    <rect
-                      key={note.id}
-                      ref={(el) => {
-                        if (el) rectsRef.current.set(note.id, el)
-                        else rectsRef.current.delete(note.id)
-                      }}
-                      className={cls.filter(Boolean).join(' ')}
-                      data-bar={note.measure}
-                      style={part ? ({ '--part': part.colour } as CSSProperties) : undefined}
-                      x={note.box.x - 3}
-                      y={note.box.y - 3}
-                      width={note.box.w + 6}
-                      height={note.box.h + 6}
-                      rx={4}
-                      onClick={(event) => assign(note, event.shiftKey)}
-                    >
-                      <title>{part ? part.name : 'Unassigned'}</title>
-                    </rect>
-                  )
-                })}
-              </svg>
-            )}
-          </div>
-        </main>
       </div>
-
-      <footer className="colophon">
-        Engraved with OpenSheetMusicDisplay · played with Tone.js
-      </footer>
     </div>
+  )
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+/** Steps once on press, then keeps stepping while held. Keyboard presses step once. */
+function RepeatButton({
+  className,
+  label,
+  disabled,
+  onStep,
+  children,
+}: {
+  className: string
+  label: string
+  disabled: boolean
+  onStep: () => void
+  children: ReactNode
+}) {
+  const timer = useRef(0)
+  const stepRef = useRef(onStep)
+  stepRef.current = onStep
+  const stop = () => window.clearTimeout(timer.current)
+  useEffect(() => stop, [])
+  useEffect(() => {
+    if (disabled) stop()
+  }, [disabled])
+
+  const start = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return
+    stepRef.current()
+    const tick = (delay: number) => {
+      timer.current = window.setTimeout(() => {
+        stepRef.current()
+        tick(90)
+      }, delay)
+    }
+    tick(450)
+  }
+
+  return (
+    <button
+      className={className}
+      aria-label={label}
+      disabled={disabled}
+      onPointerDown={start}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      // Pointer presses are handled above; this catches Enter and Space.
+      onClick={(event) => {
+        if (event.detail === 0) stepRef.current()
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+      <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor" />
+    </svg>
+  )
+}
+
+function StopIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <rect x="5" y="5" width="14" height="14" rx="2.5" fill="currentColor" />
+    </svg>
+  )
+}
+
+function LoopIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 2l4 4-4 4" />
+      <path d="M3 11V9a3 3 0 0 1 3-3h15" />
+      <path d="M7 22l-4-4 4-4" />
+      <path d="M21 13v2a3 3 0 0 1-3 3H3" />
+    </svg>
+  )
+}
+
+function UploadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 15V3" />
+      <path d="M7 8l5-5 5 5" />
+      <path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+    </svg>
   )
 }
 

@@ -1,16 +1,4 @@
-/* A concert hall with the house lights up: beige plaster, walnut, burgundy, brass. */
-:root {
-  --bg: #f1e8d8;
-  --paper: #fbf5ea;
-  --ink: #2b1a10;
-  --ink-dim: #7a6451;
-  --rule: #d8c6a8;
-  --burgundy: #7d2633;
-  --brass: #a8802f;
-  --on-burgundy: #fbf4e8;
-  --serif: "EB Garamond", Garamond, Georgia, serif;
-  color-scheme: light;
-}
+/* Understudy, screen A5. Every colour, font and radius comes from tokens.css. */
 
 * {
   box-sizing: border-box;
@@ -18,126 +6,21 @@
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font: 18px/1.5 var(--serif);
+  background: var(--us-ground);
+  color: var(--us-ink);
+  font: 16px/1.5 var(--us-font-ui);
+  color-scheme: light;
 }
 
 button,
-input {
+input,
+output {
   font: inherit;
   color: inherit;
 }
 
-.hall {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 40px 16px 64px;
-}
-
-/* --- masthead ------------------------------------------------------------- */
-.masthead {
-  text-align: center;
-  padding-bottom: 24px;
-  margin-bottom: 24px;
-  border-bottom: 2px solid var(--brass);
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: 14px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--burgundy);
-}
-
-h1 {
-  margin: 4px 0 8px;
-  font-size: clamp(34px, 6vw, 52px);
-  font-weight: 500;
-  line-height: 1.1;
-}
-
-.lede {
-  margin: 0 auto;
-  max-width: 34em;
-  color: var(--ink-dim);
-  font-style: italic;
-}
-
-/* --- layout --------------------------------------------------------------- */
-.layout {
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-
-.sidebar {
-  position: sticky;
-  top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.panel {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-h2 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
-}
-
-.score-title {
-  margin: 0;
-  font-size: 20px;
-  font-style: italic;
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.empty p,
-.hint,
-.small {
-  margin: 0;
-  font-size: 15px;
-  color: var(--ink-dim);
-}
-
-.small {
-  font-size: 14px;
-  font-style: italic;
-}
-
-/* --- buttons -------------------------------------------------------------- */
-button,
-.file-button {
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  background: var(--bg);
-  padding: 5px 12px;
+button {
   cursor: pointer;
-}
-
-button:hover:not(:disabled),
-.file-button:hover {
-  border-color: var(--burgundy);
 }
 
 button:disabled {
@@ -145,69 +28,201 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.file-button,
-.empty button {
-  align-self: flex-start;
-}
-
-button.primary {
-  background: var(--burgundy);
-  border-color: var(--burgundy);
-  color: var(--on-burgundy);
-}
-
-button.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--burgundy) 88%, black);
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.file-button input {
-  display: none;
-}
-
-button.link {
-  align-self: flex-start;
-  border: none;
-  background: none;
-  padding: 0;
-  color: var(--burgundy);
-  font-style: italic;
-}
-
-button.link:hover {
-  text-decoration: underline;
-}
-
-.play {
-  background: var(--burgundy);
-  border-color: var(--burgundy);
-  color: var(--on-burgundy);
-  font-size: 20px;
-  padding: 8px 16px;
-  letter-spacing: 0.04em;
-}
-
-.play:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--burgundy) 88%, black);
-}
-
 button:focus-visible,
 input:focus-visible,
-.file-button:focus-within {
-  outline: 2px solid var(--brass);
-  outline-offset: 2px;
+label:focus-within {
+  outline: 2px solid var(--us-accent);
+  outline-offset: 3px;
 }
 
-/* --- parts ---------------------------------------------------------------- */
+h2 {
+  margin: 0;
+  font-family: var(--us-font-display);
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 1.15;
+}
+
+/* --- header bar ----------------------------------------------------------- */
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 32px;
+  padding: 18px 32px;
+  background: var(--us-ink);
+  color: var(--us-cream);
+}
+
+.logo {
+  display: block;
+  width: 140px;
+  height: auto;
+  flex: none;
+}
+
+.score-heading {
+  flex: 1 1 240px;
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.score-meta {
+  font-weight: 400;
+  opacity: 0.72;
+}
+
+.open-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--us-hit);
+  padding: 0 16px;
+  margin-right: -16px;
+  border-radius: var(--us-radius-pill);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.open-file:hover {
+  background: var(--us-cream-12);
+}
+
+.open-file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- main area ------------------------------------------------------------ */
+.main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 32px 40px;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px 32px 64px;
+}
+
+.score-column {
+  flex: 999 1 560px;
+  min-width: 0;
+}
+
+/* A steady 300px, so parts appearing never moves the score's line breaks. */
+.side {
+  flex: 0 1 300px;
+  min-width: 280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  text-align: center;
+}
+
+.hint,
+.small,
+.score-hint,
+.loading,
+.error {
+  margin: 0;
+  color: var(--us-muted);
+  font-size: 14px;
+}
+
+.score-hint {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.error {
+  color: var(--us-ink);
+  font-weight: 600;
+}
+
+/* --- who sings what? ------------------------------------------------------ */
+.who {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.who h2 {
+  margin-bottom: 4px;
+}
+
+.dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--part);
+  flex: none;
+}
+
+.preset-satb,
+.preset-mine {
+  width: 100%;
+  border: none;
+  font-weight: 700;
+}
+
+.preset-satb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px;
+  border-radius: var(--us-radius-preset);
+  background: var(--us-ink);
+  color: var(--us-cream);
+}
+
+.preset-satb .dots {
+  display: flex;
+  gap: 8px;
+}
+
+.preset-mine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: var(--us-hit);
+  padding: 10px 16px;
+  border-radius: var(--us-radius-pill);
+  background: var(--us-deep);
+  color: var(--us-ink);
+}
+
+.preset-satb:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--us-ink) 88%, var(--us-cream));
+}
+
+.preset-mine:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--us-deep) 80%, var(--us-ink));
+}
+
+/* Rows once parts exist: centred, no boxes; the part's own colour marks the active one. */
 .parts {
   list-style: none;
   margin: 0;
   padding: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -216,24 +231,19 @@ input:focus-visible,
 .part {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 6px;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  gap: 6px;
+  min-height: var(--us-hit);
+  padding: 0 4px 0 14px;
+  border-radius: var(--us-radius-pill);
   cursor: pointer;
 }
 
-.part.active {
-  border-color: var(--part);
-  background: color-mix(in srgb, var(--part) 10%, transparent);
+.part:hover {
+  background: color-mix(in srgb, var(--us-deep) 60%, transparent);
 }
 
-.swatch {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  background: var(--part);
-  flex: none;
+.part.active {
+  background: color-mix(in srgb, var(--part) 16%, transparent);
 }
 
 .part-name {
@@ -242,130 +252,193 @@ input:focus-visible,
   border: none;
   background: none;
   padding: 2px 0;
+  font-weight: 600;
+}
+
+.part-name:focus-visible {
+  outline-offset: 0;
 }
 
 .count {
   font-size: 13px;
-  color: var(--ink-dim);
+  color: var(--us-muted);
   font-variant-numeric: tabular-nums;
+  min-width: 2ch;
 }
 
 .mine-toggle,
 .remove {
-  padding: 0 8px;
-  font-size: 14px;
+  min-height: 32px;
+  border: none;
+  border-radius: var(--us-radius-pill);
   background: transparent;
+  font-size: 14px;
 }
 
+.mine-toggle {
+  padding: 0 12px;
+  font-weight: 600;
+  color: var(--us-muted);
+}
+
+.mine-toggle:hover {
+  background: var(--us-deep);
+  color: var(--us-ink);
+}
+
+/* Ink, not the part colour: cream on the lighter part colours (tenor) is unreadable. */
 .mine-toggle.on {
-  background: var(--brass);
-  border-color: var(--brass);
-  color: var(--on-burgundy);
+  background: var(--us-ink);
+  color: var(--us-cream);
 }
 
 .remove {
-  border-color: transparent;
-  color: var(--ink-dim);
+  width: 32px;
+  color: var(--us-muted);
+  font-size: 18px;
 }
 
-/* --- transport ------------------------------------------------------------ */
-.control-group {
+.remove:hover {
+  background: var(--us-deep);
+  color: var(--us-ink);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+}
+
+button.link {
+  min-height: var(--us-hit);
+  border: none;
+  background: none;
+  padding: 0 4px;
+  font-weight: 600;
+  color: var(--us-ink);
+}
+
+button.link:hover {
+  text-decoration: underline;
+}
+
+/* --- controls panel ------------------------------------------------------- */
+.controls {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 24px;
+  padding: 32px 24px;
+  border-radius: var(--us-radius-panel);
+  background: var(--us-ink);
+  color: var(--us-cream);
+  box-shadow: var(--us-shadow-panel);
 }
 
-.label {
-  font-size: 13px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
-}
-
-.label .value {
-  color: var(--ink);
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.segmented {
-  display: flex;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.segmented button {
-  flex: 1;
+.play {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
   border: none;
-  border-right: 1px solid var(--rule);
-  border-radius: 0;
-  background: transparent;
-  padding: 6px 4px;
-  font-size: 15px;
+  border-radius: 50%;
+  background: var(--us-accent);
+  color: var(--us-ink);
 }
 
-.segmented button:last-child {
-  border-right: none;
+.play:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--us-accent) 88%, var(--us-cream));
 }
 
-.segmented button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--burgundy) 8%, transparent);
-}
-
-.segmented button.on {
-  background: var(--burgundy);
-  color: var(--on-burgundy);
-}
-
-.bar-range {
+.control-group {
+  width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
 }
 
-.bar-range select {
-  font: inherit;
-  color: inherit;
-  background: var(--bg);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 3px 6px;
-  min-width: 4em;
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--us-cream-70);
 }
 
-.bar-range .link {
-  margin-left: auto;
-  align-self: center;
+.segmented {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 26px;
+  background: var(--us-cream-12);
 }
 
-.bar-hit {
-  fill: transparent;
-  cursor: col-resize;
+.segmented button {
+  min-height: var(--us-hit);
+  border: none;
+  border-radius: var(--us-radius-pill);
+  background: transparent;
+  font-weight: 600;
 }
 
-.overlay {
-  touch-action: none;
+.segmented button:hover:not(:disabled):not([aria-pressed='true']) {
+  background: var(--us-cream-12);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--us-cream);
+  color: var(--us-ink);
+}
+
+.controls .small {
+  color: var(--us-cream-70);
+  font-size: 13px;
+}
+
+.round {
+  display: grid;
+  place-items: center;
+  width: var(--us-hit);
+  height: var(--us-hit);
+  border: none;
+  border-radius: 50%;
+  background: var(--us-cream-12);
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 600;
+  touch-action: manipulation;
   user-select: none;
 }
 
-.bar-shade {
-  fill: color-mix(in srgb, var(--brass) 12%, transparent);
-  pointer-events: none;
+.round:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--us-cream) 22%, transparent);
 }
 
-.transport input[type="range"] {
-  width: 100%;
-  accent-color: var(--burgundy);
+.loop[aria-pressed='true'] {
+  background: var(--us-cream);
+  color: var(--us-ink);
 }
 
-/* --- the page ------------------------------------------------------------- */
-.paper {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  box-shadow: 0 1px 2px rgb(43 26 16 / 8%), 0 8px 24px rgb(43 26 16 / 8%);
-  padding: 16px 8px;
+.tempo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.bpm {
+  min-width: 3ch;
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- score ---------------------------------------------------------------- */
+.score-scroll {
   overflow-x: auto;
 }
 
@@ -373,10 +446,30 @@ input:focus-visible,
   position: relative;
 }
 
+/* OSMD has no barline colour option. VexFlow draws barlines as bare rects in each
+   measure and connectors (system barlines) in .vf-connector; CSS beats SVG attributes. */
+.score .vf-measure > rect,
+.score .vf-connector rect {
+  fill: var(--us-barline);
+  stroke: var(--us-barline);
+}
+
 .overlay {
   position: absolute;
   top: 0;
   left: 0;
+  touch-action: none;
+  user-select: none;
+}
+
+.bar-hit {
+  fill: transparent;
+  cursor: col-resize;
+}
+
+.bar-shade {
+  fill: color-mix(in srgb, var(--us-ink) 8%, transparent);
+  pointer-events: none;
 }
 
 .note {
@@ -389,12 +482,12 @@ input:focus-visible,
 }
 
 .overlay.marking .note:hover {
-  fill: color-mix(in srgb, var(--ink) 10%, transparent);
+  fill: color-mix(in srgb, var(--us-ink) 12%, transparent);
 }
 
 .note.owned,
 .overlay.marking .note.owned:hover {
-  fill: color-mix(in srgb, var(--part) 30%, transparent);
+  fill: color-mix(in srgb, var(--part) 32%, transparent);
 }
 
 .note.mine {
@@ -402,26 +495,39 @@ input:focus-visible,
   stroke-width: 1.5;
 }
 
-.note[data-sounding="true"] {
-  fill: color-mix(in srgb, var(--brass) 55%, transparent);
-  stroke: var(--brass);
+.note[data-sounding='true'] {
+  fill: color-mix(in srgb, var(--us-accent) 50%, transparent);
+  stroke: var(--us-accent);
   stroke-width: 1.5;
 }
 
-.loading,
-.error {
-  text-align: center;
-  color: var(--ink-dim);
-  font-style: italic;
-}
+/* --- narrow screens ------------------------------------------------------- */
+@media (max-width: 640px) {
+  .topbar {
+    padding: 14px 16px;
+    column-gap: 4px;
+    justify-content: space-between;
+  }
 
-.error {
-  color: var(--burgundy);
-}
+  .logo {
+    width: 120px;
+  }
 
-.colophon {
-  margin-top: 32px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--ink-dim);
+  .open-file {
+    padding: 0 10px;
+    font-size: 15px;
+  }
+
+  .score-heading {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .open-file {
+    margin-right: -8px;
+  }
+
+  .main {
+    padding: 16px 16px 48px;
+  }
 }
