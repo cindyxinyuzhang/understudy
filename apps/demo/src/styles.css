@@ -357,8 +357,9 @@ h2 {
   background: color-mix(in srgb, var(--us-deep) 60%, transparent);
 }
 
+/* A quiet beige, not the part's colour, so it never reads as another part. */
 .part.active {
-  background: color-mix(in srgb, var(--part) 16%, transparent);
+  background: var(--us-deep);
 }
 
 .part-name {

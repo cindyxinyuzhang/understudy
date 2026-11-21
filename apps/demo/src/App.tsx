@@ -12,7 +12,7 @@ import {
 import { Player, type Levels } from './audio'
 import logoUrl from './assets/brand/logo-on-dark.svg'
 import sampleUrl from './assets/sample.musicxml?url'
-import { findParts, hasSatb } from './parts'
+import { findParts } from './parts'
 import {
   buildSchedule,
   createOsmd,
@@ -289,16 +289,6 @@ export function App() {
     setMyPartId(made[0]!.id)
   }
 
-  /**
-   * If the score holds a Soprano, Alto, Tenor, Bass set (four lines, or four in one
-   * instrument beside others such as a piano), hand out every line found; otherwise
-   * start with empty parts.
-   */
-  const presetSatb = () => {
-    if (model && hasSatb(findParts(model.notes, model.staffInstruments))) detectParts()
-    else addParts(SATB)
-  }
-
   const changeTempo = (direction: 1 | -1) =>
     setBpm((b) => clampTempo(b + direction * TEMPO.step))
 
@@ -499,21 +489,21 @@ export function App() {
             <h2>Who sings what?</h2>
             {parts.length === 0 ? (
               <>
-                <button className="preset-satb" disabled={!model || loading} onClick={presetSatb}>
+                <button className="preset-satb" disabled={!model || loading} onClick={detectParts}>
                   <span className="dots" aria-hidden="true">
                     {SATB.map((name, i) => (
                       <span key={name} className="dot" style={{ '--part': PART_COLOURS[i] } as CSSProperties} />
                     ))}
                   </span>
-                  Soprano, Alto, Tenor, Bass
+                  Split parts for me
                 </button>
                 <button
                   className="preset-mine"
                   disabled={!model || loading}
-                  onClick={() => addParts(['My part'])}
+                  onClick={() => addParts(['Part 1'])}
                 >
                   <span className="dot" aria-hidden="true" style={{ '--part': 'var(--us-accent)' } as CSSProperties} />
-                  Just my part
+                  Define parts myself
                 </button>
                 <p className="hint">You can change any note afterwards by clicking it.</p>
               </>
@@ -673,8 +663,9 @@ function Help() {
           <h2>How it works</h2>
           <ol>
             <li>
-              <strong>Say who sings what.</strong> “Soprano, Alto, Tenor, Bass” finds the four
-              parts for you. “Just my part” starts with one.
+              <strong>Say who sings what.</strong> “Split parts for me” finds each line in the
+              score and gives it its own part. “Define parts myself” starts you with one
+              empty part; add more with “+ Add a part”.
             </li>
             <li>
               <strong>Fix any note.</strong> Pick a part in the list, then click a note to give

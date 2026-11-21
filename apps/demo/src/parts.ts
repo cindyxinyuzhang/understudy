@@ -75,10 +75,6 @@ export function findParts(
   })
 }
 
-/** True when the parts found include a full Soprano, Alto, Tenor, Bass set. */
-export const hasSatb = (found: readonly FoundPart[]) =>
-  SATB.every((name) => found.some((f) => f.name === name))
-
 function meanFreq(notes: readonly ScoreNote[]): number {
   return notes.reduce((sum, n) => sum + n.freq, 0) / notes.length
 }
