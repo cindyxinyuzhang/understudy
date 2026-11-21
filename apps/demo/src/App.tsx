@@ -327,12 +327,43 @@ export function App() {
 
   const togglePlay = async () => {
     if (playing) {
-      player.stop()
+      player.pause()
       return
     }
+    if (!model || loading) return
     setPlaying(true)
     await player.play(bpm)
   }
+
+  // Space plays and pauses from anywhere, except while typing or on a control
+  // that uses Space itself (a slider moves with it).
+  const toggleRef = useRef(togglePlay)
+  toggleRef.current = togglePlay
+  useEffect(() => {
+    const ownsSpace = (target: EventTarget | null) =>
+      target instanceof HTMLElement &&
+      (target.isContentEditable ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLInputElement && target.type !== 'button' && target.type !== 'checkbox'))
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
+      if (ownsSpace(event.target)) return
+      // Also stops the page scrolling, and a focused button from being pressed too.
+      event.preventDefault()
+      void toggleRef.current()
+    }
+    // A focused button presses itself on Space's keyup; we've already acted on keydown.
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space' && event.target instanceof HTMLButtonElement) event.preventDefault()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [])
 
   const openFile = async (file: File) => {
     const isZip = /\.mxl$/i.test(file.name)
@@ -388,48 +419,6 @@ export function App() {
       <div className="masthead">
         <header className="topbar">
           <img className="logo" src={logoUrl} width={140} alt="Understudy" />
-
-          <div className="transport" role="group" aria-label="Playback">
-            <button
-              className="play"
-              aria-label={playing ? 'Stop' : 'Play'}
-              disabled={!model || loading}
-              onClick={() => void togglePlay()}
-            >
-              {playing ? <StopIcon /> : <PlayIcon />}
-            </button>
-            <button
-              className="round loop"
-              aria-label="Loop"
-              aria-pressed={loop}
-              title={loop ? 'Loop: on' : 'Loop: off'}
-              onClick={() => setLoop((l) => !l)}
-            >
-              <LoopIcon />
-            </button>
-            <div className="tempo" role="group" aria-label="Tempo">
-              <RepeatButton
-                className="round"
-                label="Slower"
-                disabled={bpm <= TEMPO.min}
-                onStep={() => changeTempo(-1)}
-              >
-                −
-              </RepeatButton>
-              <output className="bpm" aria-live="polite" title="Beats per minute">
-                {bpm}
-                <span className="bpm-unit">bpm</span>
-              </output>
-              <RepeatButton
-                className="round"
-                label="Faster"
-                disabled={bpm >= TEMPO.max}
-                onStep={() => changeTempo(1)}
-              >
-                +
-              </RepeatButton>
-            </div>
-          </div>
 
           <p className="score-heading">
             <span className="score-title">{title || (loading ? 'Loading…' : 'No score')}</span>
@@ -620,7 +609,50 @@ export function App() {
             </div>
           </div>
         </main>
+      </div>
 
+      {/* Floats over the score, centred at the bottom of the window. */}
+      <div className="transport floating" role="group" aria-label="Playback">
+        <button
+          className="play"
+          aria-label={playing ? 'Pause' : 'Play'}
+          title={playing ? 'Pause (Space)' : 'Play (Space)'}
+          disabled={!model || loading}
+          onClick={() => void togglePlay()}
+        >
+          {playing ? <PauseIcon /> : <PlayIcon />}
+        </button>
+        <button
+          className="round loop"
+          aria-label="Loop"
+          aria-pressed={loop}
+          title={loop ? 'Loop: on' : 'Loop: off'}
+          onClick={() => setLoop((l) => !l)}
+        >
+          <LoopIcon />
+        </button>
+        <div className="tempo" role="group" aria-label="Tempo">
+          <RepeatButton
+            className="round"
+            label="Slower"
+            disabled={bpm <= TEMPO.min}
+            onStep={() => changeTempo(-1)}
+          >
+            −
+          </RepeatButton>
+          <output className="bpm" aria-live="polite" title="Beats per minute">
+            {bpm}
+            <span className="bpm-unit">bpm</span>
+          </output>
+          <RepeatButton
+            className="round"
+            label="Faster"
+            disabled={bpm >= TEMPO.max}
+            onStep={() => changeTempo(1)}
+          >
+            +
+          </RepeatButton>
+        </div>
       </div>
     </div>
   )
@@ -674,8 +706,9 @@ function Help() {
               Click that bar again to go back to the whole piece.
             </li>
             <li>
-              <strong>Listen.</strong> Press play. Turn each part on or off with its speaker
-              and set its volume with the slider. Loop repeats the chosen bars.
+              <strong>Listen.</strong> Press play, or the Space bar, to play and pause. Turn
+              each part on or off with its speaker and set its volume with the slider. Loop
+              repeats the chosen bars.
             </li>
           </ol>
           <p>Open your own score as MusicXML (.musicxml, .xml or .mxl).</p>
@@ -801,10 +834,11 @@ function PlayIcon() {
   )
 }
 
-function StopIcon() {
+function PauseIcon() {
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-      <rect x="5" y="5" width="14" height="14" rx="2.5" fill="currentColor" />
+      <rect x="6" y="5" width="4.5" height="14" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="5" width="4.5" height="14" rx="1.5" fill="currentColor" />
     </svg>
   )
 }

@@ -82,11 +82,24 @@ h2 {
   opacity: 0.72;
 }
 
-/* --- playback, in the dark bar --- */
+/* --- playback: an ink pill floating at the bottom centre of the window --- */
 .transport {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.transport.floating {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 20;
+  padding: 8px 14px 8px 8px;
+  border-radius: var(--us-radius-pill);
+  background: var(--us-ink);
+  color: var(--us-cream);
+  box-shadow: var(--us-shadow-panel);
 }
 
 .play {
@@ -464,7 +477,8 @@ button.link:hover {
 .main {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 24px 32px 64px;
+  /* Room under the last line of music for the floating controls. */
+  padding: 24px 32px 120px;
 }
 
 .hint,
@@ -578,10 +592,6 @@ button.link:hover {
     order: 2;
   }
 
-  .transport {
-    order: 3;
-  }
-
   .score-heading {
     order: 4;
     flex: 1 1 140px;
@@ -626,6 +636,10 @@ button.link:hover {
   }
 
   .main {
-    padding: 16px 16px 48px;
+    padding: 16px 16px 112px;
+  }
+
+  .transport.floating {
+    bottom: calc(12px + env(safe-area-inset-bottom));
   }
 }

@@ -41,6 +41,8 @@ export class Player {
   private tempoPart: Tone.Part<{ time: string; factor: number }> | null = null
   private tempoMarks: TempoMark[] = []
   private baseBpm = 100
+  /** Where a pause left the music, in performance quarters; null when not paused. */
+  private pausedAt: number | null = null
   private synth: Tone.PolySynth | null = null
   private gain: Tone.Gain | null = null
   /** The "span is over" event, kept so it can move without touching the notes. */
@@ -142,10 +144,21 @@ export class Player {
     this.applySpan()
   }
 
+  /** Resumes from a pause if it is still inside the span; otherwise starts at the span. */
   async play(bpm: number): Promise<void> {
     await this.unlock()
     const transport = Tone.getTransport()
     this.baseBpm = bpm
+    const resumeAt = this.pausedAt
+    this.pausedAt = null
+    if (resumeAt !== null && resumeAt >= this.span.start && resumeAt < this.span.end) {
+      transport.bpm.cancelScheduledValues(0)
+      transport.bpm.value = bpm * this.factorAt(resumeAt)
+      this.setLoopPoints()
+      this.scheduleEnd()
+      transport.start()
+      return
+    }
     transport.stop()
     transport.bpm.cancelScheduledValues(0)
     transport.bpm.value = bpm * this.factorAt(this.span.start)
@@ -156,7 +169,18 @@ export class Player {
     transport.start()
   }
 
+  /** Holds the music where it is; play() carries on from here. */
+  pause(): void {
+    const transport = Tone.getTransport()
+    if (transport.state !== 'started') return
+    this.pausedAt = this.nowQuarters()
+    transport.pause()
+    this.synth?.releaseAll()
+    this.handlers.onStop()
+  }
+
   stop(): void {
+    this.pausedAt = null
     const transport = Tone.getTransport()
     transport.stop()
     transport.loop = false
