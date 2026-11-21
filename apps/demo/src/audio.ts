@@ -27,8 +27,10 @@ type Handlers = {
  */
 export class Player {
   private part: Tone.Part<ScheduledNote> | null = null
-  private voices: Tone.PolySynth[] = []
-  private gains: Tone.Gain[] = []
+  private synth: Tone.PolySynth | null = null
+  private gain: Tone.Gain | null = null
+  /** The "piece is over" event, kept so a restart can clear it without touching the notes. */
+  private endEvent: number | null = null
   private started = false
 
   private mode: PlayMode = 'all'
@@ -44,27 +46,23 @@ export class Player {
     this.started = true
   }
 
-  setScore(notes: ScoreNote[], parts: number, lengthQuarters: number): void {
+  setScore(notes: ScoreNote[], lengthQuarters: number): void {
     this.dispose()
     this.lengthQuarters = lengthQuarters
 
-    for (let i = 0; i < parts; i++) {
-      const gain = new Tone.Gain(0.3).toDestination()
-      const synth = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'triangle' },
-        envelope: { attack: 0.02, decay: 0.15, sustain: 0.5, release: 0.4 },
-      }).connect(gain)
-      synth.maxPolyphony = 16
-      this.voices.push(synth)
-      this.gains.push(gain)
-    }
+    this.gain = new Tone.Gain(0.25).toDestination()
+    this.synth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.02, decay: 0.15, sustain: 0.5, release: 0.4 },
+    }).connect(this.gain)
+    this.synth.maxPolyphony = 32
 
     this.part = new Tone.Part<ScheduledNote>((time, { note }) => {
       if (!sounds(note, this.mode, this.mine)) return
       const secondsPerQuarter = 60 / Tone.getTransport().bpm.value
       // Shorten very slightly so repeated pitches re-articulate instead of blurring.
       const held = note.duration * secondsPerQuarter * 0.92
-      this.voices[note.partIndex]?.triggerAttackRelease(note.freq, held, time)
+      this.synth?.triggerAttackRelease(note.freq, held, time)
       Tone.getDraw().schedule(() => this.handlers.onNoteOn(note), time)
     }, notes.map((note) => ({ time: quartersToTransportTime(note.start), note })))
 
@@ -83,19 +81,19 @@ export class Player {
     Tone.getTransport().bpm.value = bpm
   }
 
-  async play(mode: PlayMode, bpm: number): Promise<void> {
+  async play(bpm: number): Promise<void> {
     await this.unlock()
-    this.mode = mode
     const transport = Tone.getTransport()
     transport.bpm.value = bpm
     transport.stop()
     transport.position = 0
-    transport.cancel(0)
+    // Clear only our own end marker. transport.cancel() would also wipe the notes
+    // the Part scheduled, and a started Part does not reschedule them on start().
+    this.clearEnd()
     // One bar of tail so the final chord can ring before everything is torn down.
-    transport.scheduleOnce(() => {
-      this.stop()
+    this.endEvent = transport.scheduleOnce(() => {
+      Tone.getDraw().schedule(() => this.stop(), Tone.now())
     }, quartersToTransportTime(this.lengthQuarters + 4))
-    this.part?.start(0)
     transport.start()
   }
 
@@ -103,18 +101,24 @@ export class Player {
     const transport = Tone.getTransport()
     transport.stop()
     transport.position = 0
-    transport.cancel(0)
-    for (const v of this.voices) v.releaseAll()
+    this.clearEnd()
+    this.synth?.releaseAll()
     this.handlers.onStop()
   }
 
   dispose(): void {
+    this.clearEnd()
     this.part?.dispose()
     this.part = null
-    for (const v of this.voices) v.dispose()
-    for (const g of this.gains) g.dispose()
-    this.voices = []
-    this.gains = []
+    this.synth?.dispose()
+    this.gain?.dispose()
+    this.synth = null
+    this.gain = null
+  }
+
+  private clearEnd(): void {
+    if (this.endEvent !== null) Tone.getTransport().clear(this.endEvent)
+    this.endEvent = null
   }
 }
 

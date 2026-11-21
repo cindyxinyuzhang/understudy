@@ -10,7 +10,10 @@ const UNIT_PX = 10
 export type ScoreNote = {
   /** Stable across re-layout: position in the musical structure, not the drawing. */
   id: string
-  partIndex: number
+  /** Staff from the top of a system, 0-based. Several singers' lines can share one. */
+  staff: number
+  /** Voice number as written in the file; tells apart lines that share a staff. */
+  voice: number
   /** 1-based, as printed. */
   measure: number
   /** Hz — handed straight to the synth. */
@@ -24,7 +27,6 @@ export type ScoreNote = {
 }
 
 export type ScoreModel = {
-  parts: string[]
   notes: ScoreNote[]
   /** Quarter notes in the whole excerpt. */
   length: number
@@ -46,8 +48,9 @@ export function createOsmd(container: HTMLElement, palette: Palette): OpenSheetM
     drawComposer: false,
     drawLyricist: false,
     drawCredits: false,
-    drawPartNames: true,
-    drawPartAbbreviations: true,
+    // Part names describe the file's layout, not who sings what; the user decides that.
+    drawPartNames: false,
+    drawPartAbbreviations: false,
     drawMeasureNumbers: true,
     drawLyrics: true,
     // No white anywhere: the engraving is drawn in dark brown on warm paper.
@@ -67,8 +70,9 @@ export function createOsmd(container: HTMLElement, palette: Palette): OpenSheetM
  * of the app needs: what sounds when, and where it sits on the page.
  *
  * Two things are worth knowing about the walk:
- *   - MeasureList is indexed [measure][staff]. Every part here is a single staff,
- *     so the staff index is the part index.
+ *   - MeasureList is indexed [measure][staff], across every instrument. A staff
+ *     can hold several voices (SA on one, TB on another), so a note is located by
+ *     staff and voice, never assumed to belong to anyone.
  *   - A tied group is one sound. We keep the first note of the tie, give it the
  *     whole tied duration, and drop the continuations so they are neither played
  *     nor selectable as separate events.
@@ -78,18 +82,16 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
   const scale = UNIT_PX * osmd.zoom
   const notes: ScoreNote[] = []
 
-  const parts = osmd.Sheet.Instruments.map((inst, i) => inst.Name?.trim() || `Part ${i + 1}`)
-
   let length = 0
 
   const origin = container.querySelector('svg')?.getBoundingClientRect() ?? null
 
   for (const staves of graphic.MeasureList) {
     if (!staves) continue
-    staves.forEach((measure, partIndex) => {
+    staves.forEach((measure, staff) => {
       if (!measure) return
       const measureNumber = measure.MeasureNumber
-      let seq = 0
+      const seq = new Map<number, number>()
 
       for (const staffEntry of measure.staffEntries ?? []) {
         for (const voiceEntry of staffEntry.graphicalVoiceEntries ?? []) {
@@ -110,9 +112,14 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
 
             const box = noteheadBox(gNote, origin) ?? fallbackBox(gNote, scale)
 
+            const voice = source.ParentVoiceEntry?.ParentVoice?.VoiceId ?? 1
+            const n = seq.get(voice) ?? 0
+            seq.set(voice, n + 1)
+
             notes.push({
-              id: `${partIndex}:${measureNumber}:${seq++}`,
-              partIndex,
+              id: `${staff}:${voice}:${measureNumber}:${n}`,
+              staff,
+              voice,
               measure: measureNumber,
               freq: pitch.Frequency,
               start,
@@ -126,7 +133,7 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
     })
   }
 
-  notes.sort((a, b) => a.start - b.start || a.partIndex - b.partIndex)
+  notes.sort((a, b) => a.start - b.start || a.staff - b.staff || a.voice - b.voice)
 
   const svg = container.querySelector('svg')
   const size = {
@@ -134,7 +141,7 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
     h: svg ? Number(svg.getAttribute('height')) || svg.clientHeight : 0,
   }
 
-  return { parts, notes, length, size }
+  return { notes, length, size }
 }
 
 type Box = ScoreNote['box']

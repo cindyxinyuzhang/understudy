@@ -65,15 +65,193 @@ h1 {
   font-style: italic;
 }
 
-/* --- controls ------------------------------------------------------------- */
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px 32px;
-  align-items: flex-end;
-  justify-content: center;
+/* --- layout --------------------------------------------------------------- */
+.layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
 
+.sidebar {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.score-title {
+  margin: 0;
+  font-size: 20px;
+  font-style: italic;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.empty p,
+.hint,
+.small {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-dim);
+}
+
+.small {
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* --- buttons -------------------------------------------------------------- */
+button,
+.file-button {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--bg);
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled),
+.file-button:hover {
+  border-color: var(--burgundy);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.file-button {
+  align-self: flex-start;
+}
+
+.file-button input {
+  display: none;
+}
+
+button.link {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--burgundy);
+  font-style: italic;
+}
+
+button.link:hover {
+  text-decoration: underline;
+}
+
+.play {
+  background: var(--burgundy);
+  border-color: var(--burgundy);
+  color: var(--on-burgundy);
+  font-size: 20px;
+  padding: 8px 16px;
+  letter-spacing: 0.04em;
+}
+
+.play:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--burgundy) 88%, black);
+}
+
+button:focus-visible,
+input:focus-visible,
+.file-button:focus-within {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+/* --- lines ---------------------------------------------------------------- */
+.lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.line.active {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--line) 10%, transparent);
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--line);
+  flex: none;
+}
+
+.line-name {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 2px 0;
+}
+
+.count {
+  font-size: 13px;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.mine-toggle,
+.remove {
+  padding: 0 8px;
+  font-size: 14px;
+  background: transparent;
+}
+
+.mine-toggle.on {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: var(--on-burgundy);
+}
+
+.remove {
+  border-color: transparent;
+  color: var(--ink-dim);
+}
+
+/* --- transport ------------------------------------------------------------ */
 .control-group {
   display: flex;
   flex-direction: column;
@@ -95,20 +273,19 @@ h1 {
 
 .segmented {
   display: flex;
-  flex-wrap: wrap;
   border: 1px solid var(--rule);
   border-radius: 6px;
   overflow: hidden;
-  background: var(--paper);
 }
 
 .segmented button {
+  flex: 1;
   border: none;
   border-right: 1px solid var(--rule);
+  border-radius: 0;
   background: transparent;
-  padding: 6px 14px;
-  min-width: 5.5em;
-  cursor: pointer;
+  padding: 6px 4px;
+  font-size: 15px;
 }
 
 .segmented button:last-child {
@@ -124,27 +301,9 @@ h1 {
   color: var(--on-burgundy);
 }
 
-.segmented button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-button:focus-visible,
-input:focus-visible {
-  outline: 2px solid var(--brass);
-  outline-offset: 2px;
-}
-
-.tempo input {
-  width: 180px;
+.transport input[type="range"] {
+  width: 100%;
   accent-color: var(--burgundy);
-}
-
-.hint {
-  text-align: center;
-  color: var(--ink-dim);
-  font-size: 16px;
-  margin: 20px 0;
 }
 
 /* --- the page ------------------------------------------------------------- */
@@ -169,16 +328,25 @@ input:focus-visible {
 
 .note {
   fill: transparent;
-  cursor: pointer;
   transition: fill 90ms linear;
 }
 
-.note:hover {
-  fill: color-mix(in srgb, var(--burgundy) 12%, transparent);
+.overlay.marking .note {
+  cursor: pointer;
+}
+
+.overlay.marking .note:hover {
+  fill: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.note.owned,
+.overlay.marking .note.owned:hover {
+  fill: color-mix(in srgb, var(--line) 30%, transparent);
 }
 
 .note.mine {
-  fill: color-mix(in srgb, var(--burgundy) 30%, transparent);
+  stroke: var(--line);
+  stroke-width: 1.5;
 }
 
 .note[data-sounding="true"] {
