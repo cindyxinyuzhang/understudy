@@ -9,6 +9,9 @@
 //   - the bass ties across the m3/m4 barline  -> tied notes must sound as one
 //   - tenor and bass rest on the downbeat of m9 -> rests must not shift timing
 //
+// Printed in closed score, SA on the treble staff and TB on the bass staff, so
+// the demo has to let people pick their own line out rather than being handed it.
+//
 // Run: npm run score
 
 import { writeFileSync, mkdirSync } from 'node:fs'
@@ -170,7 +173,15 @@ function syllabicOf(text, prev, next) {
   return 'middle'
 }
 
-function renderNote(n, withLyric) {
+/** Where a voice sits in closed score: soprano and alto share the treble staff, tenor and bass the bass staff. */
+const VOICES = [
+  { name: 'S', measures: soprano, voice: 1, staff: 1, stem: 'up', lyrics: LYRICS },
+  { name: 'A', measures: alto, voice: 2, staff: 1, stem: 'down', lyrics: null },
+  { name: 'T', measures: tenor, voice: 3, staff: 2, stem: 'up', lyrics: null },
+  { name: 'B', measures: bass, voice: 4, staff: 2, stem: 'down', lyrics: null },
+]
+
+function renderNote(n, { voice, staff, stem }, withLyric) {
   const lines = ['      <note>']
   if (n.pitch === 'r') {
     lines.push('        <rest/>')
@@ -185,9 +196,11 @@ function renderNote(n, withLyric) {
   lines.push(`        <duration>${n.d}</duration>`)
   if (n.tieStop) lines.push('        <tie type="stop"/>')
   if (n.tieStart) lines.push('        <tie type="start"/>')
-  lines.push('        <voice>1</voice>')
+  lines.push(`        <voice>${voice}</voice>`)
   lines.push(`        <type>${n.type}</type>`)
   if (n.dots) lines.push('        <dot/>')
+  if (n.pitch !== 'r') lines.push(`        <stem>${stem}</stem>`)
+  lines.push(`        <staff>${staff}</staff>`)
   if (n.tieStop || n.tieStart) {
     lines.push('        <notations>')
     if (n.tieStop) lines.push('          <tied type="stop"/>')
@@ -204,39 +217,41 @@ function renderNote(n, withLyric) {
   return lines.join('\n')
 }
 
-function renderPart(id, measures, clef, lyrics) {
-  const out = [`  <part id="${id}">`]
-  measures.forEach((specs, i) => {
+/**
+ * One part on a grand staff, the way a hymnal prints it. Nothing in the file says
+ * which line is whose beyond the voice numbers; working that out is the reader's job.
+ */
+function renderChoir() {
+  const out = ['  <part id="P1">']
+  for (let i = 0; i < 16; i++) {
     out.push(`    <measure number="${i + 1}">`)
     if (i === 0) {
       out.push('      <attributes>')
       out.push(`        <divisions>${DIVISIONS}</divisions>`)
       out.push('        <key><fifths>2</fifths><mode>major</mode></key>')
       out.push('        <time><beats>4</beats><beat-type>4</beat-type></time>')
-      out.push('        <clef>')
-      out.push(`          <sign>${clef.sign}</sign>`)
-      out.push(`          <line>${clef.line}</line>`)
-      if (clef.octaveChange) {
-        out.push(`          <clef-octave-change>${clef.octaveChange}</clef-octave-change>`)
-      }
-      out.push('        </clef>')
+      out.push('        <staves>2</staves>')
+      out.push('        <clef number="1"><sign>G</sign><line>2</line></clef>')
+      out.push('        <clef number="2"><sign>F</sign><line>4</line></clef>')
       out.push('      </attributes>')
       out.push('      <sound tempo="100"/>')
     }
-    const words = lyrics ? lyrics[i] : null
-    specs.forEach((spec, j) => {
-      const n = note(spec)
-      let lyric = null
-      if (words && words[j]) {
-        lyric = { text: words[j], syllabic: syllabicOf(words[j], words[j - 1], words[j + 1]) }
-      }
-      out.push(renderNote(n, lyric))
+    VOICES.forEach((v, k) => {
+      if (k > 0) out.push(`      <backup><duration>${DIVISIONS * 4}</duration></backup>`)
+      const words = v.lyrics ? v.lyrics[i] : null
+      v.measures[i].forEach((spec, j) => {
+        let lyric = null
+        if (words && words[j]) {
+          lyric = { text: words[j], syllabic: syllabicOf(words[j], words[j - 1], words[j + 1]) }
+        }
+        out.push(renderNote(note(spec), v, lyric))
+      })
     })
-    if (i === measures.length - 1) {
+    if (i === 15) {
       out.push('      <barline location="right"><bar-style>light-heavy</bar-style></barline>')
     }
     out.push('    </measure>')
-  })
+  }
   out.push('  </part>')
   return out.join('\n')
 }
@@ -253,19 +268,13 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
     <rights>Public domain</rights>
     <encoding>
       <software>understudy/scripts/make-score.mjs</software>
-      <encoding-description>16-bar SATB excerpt, Symphony No. 9 finale</encoding-description>
+      <encoding-description>16-bar SATB excerpt in closed score, Symphony No. 9 finale</encoding-description>
     </encoding>
   </identification>
   <part-list>
-    <score-part id="P1"><part-name>Soprano</part-name><part-abbreviation>S</part-abbreviation></score-part>
-    <score-part id="P2"><part-name>Alto</part-name><part-abbreviation>A</part-abbreviation></score-part>
-    <score-part id="P3"><part-name>Tenor</part-name><part-abbreviation>T</part-abbreviation></score-part>
-    <score-part id="P4"><part-name>Bass</part-name><part-abbreviation>B</part-abbreviation></score-part>
+    <score-part id="P1"><part-name>Choir</part-name></score-part>
   </part-list>
-${renderPart('P1', soprano, { sign: 'G', line: 2 }, LYRICS)}
-${renderPart('P2', alto, { sign: 'G', line: 2 }, null)}
-${renderPart('P3', tenor, { sign: 'G', line: 2, octaveChange: -1 }, null)}
-${renderPart('P4', bass, { sign: 'F', line: 4 }, null)}
+${renderChoir()}
 </score-partwise>
 `
 
@@ -283,5 +292,5 @@ for (const [name, part] of [['S', soprano], ['A', alto], ['T', tenor], ['B', bas
 mkdirSync(dirname(OUT), { recursive: true })
 writeFileSync(OUT, xml)
 console.log(`wrote ${OUT}`)
-console.log(`  4 parts x 16 bars, D major, 4/4`)
+console.log(`  SATB in closed score (2 staves) x 16 bars, D major, 4/4`)
 console.log(`  notes: ${[soprano, alto, tenor, bass].flat(2).length}`)
