@@ -35,3 +35,6 @@ test-results/
 
 # Playwright scratch (e2e database and object storage)
 .e2e-scratch/
+
+# API local object storage (uploaded scores, rendered pages)
+apps/api/.storage/
