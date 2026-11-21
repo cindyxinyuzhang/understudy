@@ -43,19 +43,23 @@ h2 {
   line-height: 1.15;
 }
 
-/* --- header bar ----------------------------------------------------------- */
-.topbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 32px;
-  padding: 18px 32px;
-  background: var(--us-ink);
-  color: var(--us-cream);
+/* --- masthead: dark bar + parts strip, both kept in view ------------------- */
+.masthead {
   position: sticky;
   top: 0;
   /* Above the score overlay, which is positioned too. */
   z-index: 10;
+}
+
+.topbar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 12px 32px;
+  background: var(--us-ink);
+  color: var(--us-cream);
 }
 
 .logo {
@@ -66,7 +70,7 @@ h2 {
 }
 
 .score-heading {
-  flex: 1 1 240px;
+  flex: 1 1 200px;
   margin: 0;
   text-align: center;
   font-weight: 600;
@@ -78,6 +82,77 @@ h2 {
   opacity: 0.72;
 }
 
+/* --- playback, in the dark bar --- */
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.play {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: var(--us-accent);
+  color: var(--us-ink);
+}
+
+.play:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--us-accent) 88%, var(--us-cream));
+}
+
+.round {
+  display: grid;
+  place-items: center;
+  width: var(--us-hit);
+  height: var(--us-hit);
+  border: none;
+  border-radius: 50%;
+  background: var(--us-cream-12);
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 600;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.round:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--us-cream) 22%, transparent);
+}
+
+.loop[aria-pressed='true'] {
+  background: var(--us-cream);
+  color: var(--us-ink);
+}
+
+.tempo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bpm {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3.2ch;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.bpm-unit {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--us-cream-70);
+}
+
+/* --- help and open, at the right of the bar --- */
 .topbar-actions {
   display: flex;
   align-items: center;
@@ -163,65 +238,23 @@ h2 {
   pointer-events: none;
 }
 
-/* --- main area ------------------------------------------------------------ */
-.main {
+/* --- parts strip, under the bar --- */
+.parts-strip {
+  padding: 8px 32px;
+  background: var(--us-ground);
+  /* A soft edge rather than a rule, so the score scrolling under it stays legible. */
+  box-shadow: 0 10px 14px -12px rgba(36, 34, 43, 0.35);
+}
+
+.parts-strip h2 {
+  font-size: 20px;
+}
+
+.presets {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 32px 40px;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 24px 32px 64px;
-}
-
-.score-column {
-  flex: 999 1 560px;
-  min-width: 0;
-}
-
-/* A steady 300px, so parts appearing never moves the score's line breaks. */
-.side {
-  flex: 0 1 300px;
-  min-width: 280px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 28px;
-  text-align: center;
-}
-
-.hint,
-.small,
-.loading,
-.error {
-  margin: 0;
-  color: var(--us-muted);
-  font-size: 14px;
-}
-
-.loading,
-.error {
-  text-align: center;
-  padding: 24px 0;
-}
-
-.error {
-  color: var(--us-ink);
-  font-weight: 600;
-}
-
-/* --- who sings what? ------------------------------------------------------ */
-.who {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.who h2 {
-  margin-bottom: 4px;
+  gap: 8px 12px;
 }
 
 .dot {
@@ -235,35 +268,32 @@ h2 {
 
 .preset-satb,
 .preset-mine {
-  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--us-hit);
+  padding: 0 18px;
   border: none;
+  border-radius: var(--us-radius-pill);
   font-weight: 700;
 }
 
 .preset-satb {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 18px 16px;
-  border-radius: var(--us-radius-preset);
   background: var(--us-ink);
   color: var(--us-cream);
 }
 
 .preset-satb .dots {
-  display: flex;
-  gap: 8px;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.preset-satb .dot {
+  width: 10px;
+  height: 10px;
 }
 
 .preset-mine {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: var(--us-hit);
-  padding: 10px 16px;
-  border-radius: var(--us-radius-pill);
   background: var(--us-deep);
   color: var(--us-ink);
 }
@@ -276,47 +306,106 @@ h2 {
   background: color-mix(in srgb, var(--us-deep) 80%, var(--us-ink));
 }
 
-/* Rows once parts exist: centred, no boxes; the part's own colour marks the active one. */
+/* Each part is one pill: dot, name, Mine, speaker, volume, remove. */
 .parts {
   list-style: none;
   margin: 0;
   padding: 0;
-  width: 100%;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .part {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0 6px;
-  padding: 4px 4px 4px 14px;
-  border-radius: 24px;
+  gap: 4px;
+  min-height: var(--us-hit);
+  padding: 0 4px 0 12px;
+  border-radius: var(--us-radius-pill);
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.part:hover {
+  background: color-mix(in srgb, var(--us-deep) 60%, transparent);
+}
+
+/* A quiet beige, not the part's colour, so it never reads as another part. */
+.part.active {
+  background: var(--us-deep);
 }
 
 .part.others {
   cursor: default;
-}
-
-.part.others .part-name {
-  color: var(--us-muted);
-  text-align: left;
+  padding-right: 12px;
 }
 
 .part.others:hover {
   background: none;
 }
 
-/* On/off and volume, on a line of their own under the name. */
+.part.others .part-name {
+  color: var(--us-muted);
+  margin-right: 4px;
+}
+
+.part-name {
+  flex: none;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 2px 0 2px 4px;
+  font-weight: 600;
+}
+
+.part-name:focus-visible {
+  outline-offset: 0;
+}
+
+.mine-toggle,
+.remove {
+  min-height: 32px;
+  border: none;
+  border-radius: var(--us-radius-pill);
+  background: transparent;
+  font-size: 14px;
+}
+
+.mine-toggle {
+  padding: 0 10px;
+  font-weight: 600;
+  color: var(--us-muted);
+}
+
+.mine-toggle:hover {
+  background: color-mix(in srgb, var(--us-ink) 8%, transparent);
+  color: var(--us-ink);
+}
+
+/* Ink, not the part colour: cream on the lighter part colours (tenor) is unreadable. */
+.mine-toggle.on {
+  background: var(--us-ink);
+  color: var(--us-cream);
+}
+
+.remove {
+  width: 32px;
+  color: var(--us-muted);
+  font-size: 18px;
+}
+
+.remove:hover {
+  background: color-mix(in srgb, var(--us-ink) 8%, transparent);
+  color: var(--us-ink);
+}
+
+/* On/off and volume, inside the pill. */
 .mix {
-  flex-basis: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-left: -10px;
+  gap: 2px;
   cursor: default;
 }
 
@@ -337,13 +426,11 @@ h2 {
 }
 
 .speaker:hover {
-  background: var(--us-deep);
+  background: color-mix(in srgb, var(--us-ink) 8%, transparent);
 }
 
 .mix input[type='range'] {
-  flex: 1;
-  min-width: 0;
-  margin-right: 10px;
+  width: 64px;
   accent-color: var(--part);
   cursor: pointer;
 }
@@ -353,70 +440,10 @@ h2 {
   cursor: not-allowed;
 }
 
-.part:hover {
-  background: color-mix(in srgb, var(--us-deep) 60%, transparent);
-}
-
-/* A quiet beige, not the part's colour, so it never reads as another part. */
-.part.active {
-  background: var(--us-deep);
-}
-
-.part-name {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: none;
-  padding: 2px 0;
-  font-weight: 600;
-}
-
-.part-name:focus-visible {
-  outline-offset: 0;
-}
-
-.mine-toggle,
-.remove {
-  min-height: 32px;
-  border: none;
-  border-radius: var(--us-radius-pill);
-  background: transparent;
-  font-size: 14px;
-}
-
-.mine-toggle {
-  padding: 0 12px;
-  font-weight: 600;
-  color: var(--us-muted);
-}
-
-.mine-toggle:hover {
-  background: var(--us-deep);
-  color: var(--us-ink);
-}
-
-/* Ink, not the part colour: cream on the lighter part colours (tenor) is unreadable. */
-.mine-toggle.on {
-  background: var(--us-ink);
-  color: var(--us-cream);
-}
-
-.remove {
-  width: 32px;
-  color: var(--us-muted);
-  font-size: 18px;
-}
-
-.remove:hover {
-  background: var(--us-deep);
-  color: var(--us-ink);
-}
-
 .links {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 16px;
+  gap: 4px 12px;
+  margin-left: 6px;
 }
 
 button.link {
@@ -426,92 +453,37 @@ button.link {
   padding: 0 4px;
   font-weight: 600;
   color: var(--us-ink);
+  white-space: nowrap;
 }
 
 button.link:hover {
   text-decoration: underline;
 }
 
-/* --- controls panel ------------------------------------------------------- */
-.controls {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  padding: 32px 24px;
-  border-radius: var(--us-radius-panel);
-  background: var(--us-ink);
-  color: var(--us-cream);
-  box-shadow: var(--us-shadow-panel);
+/* --- main area: the score, full width ------------------------------------- */
+.main {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px 32px 64px;
 }
 
-.play {
-  display: grid;
-  place-items: center;
-  width: 68px;
-  height: 68px;
-  border: none;
-  border-radius: 50%;
-  background: var(--us-accent);
+.hint,
+.loading,
+.error {
+  margin: 0;
+  color: var(--us-muted);
+  font-size: 14px;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.error {
   color: var(--us-ink);
-}
-
-.play:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--us-accent) 88%, var(--us-cream));
-}
-
-.control-group {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--us-cream-70);
-}
-
-.round {
-  display: grid;
-  place-items: center;
-  width: var(--us-hit);
-  height: var(--us-hit);
-  border: none;
-  border-radius: 50%;
-  background: var(--us-cream-12);
-  font-size: 22px;
-  line-height: 1;
   font-weight: 600;
-  touch-action: manipulation;
-  user-select: none;
-}
-
-.round:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--us-cream) 22%, transparent);
-}
-
-.loop[aria-pressed='true'] {
-  background: var(--us-cream);
-  color: var(--us-ink);
-}
-
-.tempo {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.bpm {
-  min-width: 3ch;
-  font-size: 24px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 
 /* --- score ---------------------------------------------------------------- */
@@ -582,23 +554,52 @@ button.link:hover {
 }
 
 /* --- narrow screens ------------------------------------------------------- */
-@media (max-width: 640px) {
+@media (max-width: 760px) {
+  /* Only the dark bar stays pinned on a phone; the parts strip scrolls away with
+     the page so the score keeps most of the screen. */
+  .masthead {
+    display: contents;
+  }
+
   .topbar {
-    padding: 14px 16px;
-    column-gap: 4px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 10px 16px;
+    gap: 8px 12px;
     justify-content: space-between;
   }
 
   .logo {
-    width: 120px;
+    width: 112px;
   }
 
-  .open-file {
-    padding: 0 10px;
+  .topbar-actions {
+    order: 2;
+  }
+
+  .transport {
+    order: 3;
+  }
+
+  .score-heading {
+    order: 4;
+    flex: 1 1 140px;
+    text-align: right;
     font-size: 15px;
   }
 
-  /* Hang the guide from the (sticky, so positioned) header bar, edge to edge. */
+  /* Icon only; the input keeps its accessible name. */
+  .open-label {
+    display: none;
+  }
+
+  .open-file {
+    padding: 0 12px;
+    margin-right: -8px;
+  }
+
+  /* Hang the guide from the header bar, edge to edge. */
   .help {
     position: static;
   }
@@ -610,13 +611,18 @@ button.link:hover {
     width: auto;
   }
 
-  .score-heading {
-    order: 3;
-    flex-basis: 100%;
+  .parts-strip {
+    padding: 8px 16px;
+    box-shadow: none;
   }
 
-  .open-file {
-    margin-right: -8px;
+  /* One swipeable row of parts instead of a tall stack. */
+  .parts {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 -16px;
+    padding: 0 16px;
+    scrollbar-width: none;
   }
 
   .main {

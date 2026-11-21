@@ -385,29 +385,166 @@ export function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <img className="logo" src={logoUrl} width={140} alt="Understudy" />
-        <p className="score-heading">
-          <span className="score-title">{title || (loading ? 'Loading…' : 'No score')}</span>
-          {meta && <span className="score-meta"> · {meta}</span>}
-        </p>
-        <div className="topbar-actions">
-          <Help />
-          <label className="open-file">
-            <UploadIcon />
-            Open another score
-            <input
-              type="file"
-              accept=".musicxml,.xml,.mxl"
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                event.target.value = ''
-                if (file) void openFile(file)
-              }}
-            />
-          </label>
-        </div>
-      </header>
+      <div className="masthead">
+        <header className="topbar">
+          <img className="logo" src={logoUrl} width={140} alt="Understudy" />
+
+          <div className="transport" role="group" aria-label="Playback">
+            <button
+              className="play"
+              aria-label={playing ? 'Stop' : 'Play'}
+              disabled={!model || loading}
+              onClick={() => void togglePlay()}
+            >
+              {playing ? <StopIcon /> : <PlayIcon />}
+            </button>
+            <button
+              className="round loop"
+              aria-label="Loop"
+              aria-pressed={loop}
+              title={loop ? 'Loop: on' : 'Loop: off'}
+              onClick={() => setLoop((l) => !l)}
+            >
+              <LoopIcon />
+            </button>
+            <div className="tempo" role="group" aria-label="Tempo">
+              <RepeatButton
+                className="round"
+                label="Slower"
+                disabled={bpm <= TEMPO.min}
+                onStep={() => changeTempo(-1)}
+              >
+                −
+              </RepeatButton>
+              <output className="bpm" aria-live="polite" title="Beats per minute">
+                {bpm}
+                <span className="bpm-unit">bpm</span>
+              </output>
+              <RepeatButton
+                className="round"
+                label="Faster"
+                disabled={bpm >= TEMPO.max}
+                onStep={() => changeTempo(1)}
+              >
+                +
+              </RepeatButton>
+            </div>
+          </div>
+
+          <p className="score-heading">
+            <span className="score-title">{title || (loading ? 'Loading…' : 'No score')}</span>
+            {meta && <span className="score-meta"> · {meta}</span>}
+          </p>
+
+          <div className="topbar-actions">
+            <Help />
+            <label className="open-file">
+              <UploadIcon />
+              <span className="open-label">Open another score</span>
+              <input
+                type="file"
+                accept=".musicxml,.xml,.mxl"
+                aria-label="Open another score"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  event.target.value = ''
+                  if (file) void openFile(file)
+                }}
+              />
+            </label>
+          </div>
+        </header>
+
+        <section className="parts-strip" aria-label="Who sings what?">
+          {parts.length === 0 ? (
+            <div className="presets">
+              <h2>Who sings what?</h2>
+              <button className="preset-satb" disabled={!model || loading} onClick={detectParts}>
+                <span className="dots" aria-hidden="true">
+                  {SATB.map((name, i) => (
+                    <span key={name} className="dot" style={{ '--part': PART_COLOURS[i] } as CSSProperties} />
+                  ))}
+                </span>
+                Split parts for me
+              </button>
+              <button
+                className="preset-mine"
+                disabled={!model || loading}
+                onClick={() => addParts(['Part 1'])}
+              >
+                <span className="dot" aria-hidden="true" style={{ '--part': 'var(--us-accent)' } as CSSProperties} />
+                Define parts myself
+              </button>
+              <p className="hint">You can change any note afterwards by clicking it.</p>
+            </div>
+          ) : (
+            <ul className="parts">
+              {parts.map((part) => (
+                <li
+                  key={part.id}
+                  className={part.id === activePartId ? 'part active' : 'part'}
+                  style={{ '--part': part.colour } as CSSProperties}
+                  onClick={() => setActivePartId(part.id)}
+                >
+                  <span className="dot" />
+                  <input
+                    className="part-name"
+                    value={part.name}
+                    size={Math.max(4, part.name.length)}
+                    aria-label="Part name"
+                    onChange={(event) => renamePart(part.id, event.target.value)}
+                  />
+                  <button
+                    className={part.id === myPartId ? 'mine-toggle on' : 'mine-toggle'}
+                    title="This is the part I'm learning"
+                    aria-pressed={part.id === myPartId}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setMyPartId(part.id)
+                    }}
+                  >
+                    {part.id === myPartId ? 'Mine' : 'Me?'}
+                  </button>
+                  <MixControls
+                    name={part.name || 'this part'}
+                    mix={part}
+                    onChange={(patch) => updatePart(part.id, patch)}
+                  />
+                  <button
+                    className="remove"
+                    aria-label={`Remove ${part.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      removePart(part.id)
+                    }}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+              {unclaimed > 0 && (
+                <li className="part others" style={{ '--part': 'var(--us-muted)' } as CSSProperties}>
+                  <span className="dot" />
+                  <span className="part-name">Other notes</span>
+                  <MixControls
+                    name="other notes"
+                    mix={others}
+                    onChange={(patch) => setOthers((m) => ({ ...m, ...patch }))}
+                  />
+                </li>
+              )}
+              <li className="links">
+                <button className="link" onClick={() => addParts([`Part ${parts.length + 1}`])}>
+                  + Add a part
+                </button>
+                <button className="link" onClick={detectParts}>
+                  Find the parts again
+                </button>
+              </li>
+            </ul>
+          )}
+        </section>
+      </div>
 
       <div className="main">
         <main className="score-column">
@@ -484,146 +621,6 @@ export function App() {
           </div>
         </main>
 
-        <aside className="side" aria-label="Parts and playback">
-          <section className="who">
-            <h2>Who sings what?</h2>
-            {parts.length === 0 ? (
-              <>
-                <button className="preset-satb" disabled={!model || loading} onClick={detectParts}>
-                  <span className="dots" aria-hidden="true">
-                    {SATB.map((name, i) => (
-                      <span key={name} className="dot" style={{ '--part': PART_COLOURS[i] } as CSSProperties} />
-                    ))}
-                  </span>
-                  Split parts for me
-                </button>
-                <button
-                  className="preset-mine"
-                  disabled={!model || loading}
-                  onClick={() => addParts(['Part 1'])}
-                >
-                  <span className="dot" aria-hidden="true" style={{ '--part': 'var(--us-accent)' } as CSSProperties} />
-                  Define parts myself
-                </button>
-                <p className="hint">You can change any note afterwards by clicking it.</p>
-              </>
-            ) : (
-              <>
-                <ul className="parts">
-                  {parts.map((part) => (
-                    <li
-                      key={part.id}
-                      className={part.id === activePartId ? 'part active' : 'part'}
-                      style={{ '--part': part.colour } as CSSProperties}
-                      onClick={() => setActivePartId(part.id)}
-                    >
-                      <span className="dot" />
-                      <input
-                        className="part-name"
-                        value={part.name}
-                        aria-label="Part name"
-                        onChange={(event) => renamePart(part.id, event.target.value)}
-                      />
-                      <button
-                        className={part.id === myPartId ? 'mine-toggle on' : 'mine-toggle'}
-                        title="This is the part I'm learning"
-                        aria-pressed={part.id === myPartId}
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          setMyPartId(part.id)
-                        }}
-                      >
-                        {part.id === myPartId ? 'Mine' : 'Me?'}
-                      </button>
-                      <button
-                        className="remove"
-                        aria-label={`Remove ${part.name}`}
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          removePart(part.id)
-                        }}
-                      >
-                        ×
-                      </button>
-                      <MixControls
-                        name={part.name || 'this part'}
-                        mix={part}
-                        onChange={(patch) => updatePart(part.id, patch)}
-                      />
-                    </li>
-                  ))}
-                  {unclaimed > 0 && (
-                    <li className="part others" style={{ '--part': 'var(--us-muted)' } as CSSProperties}>
-                      <span className="dot" />
-                      <span className="part-name">Other notes</span>
-                      <MixControls
-                        name="other notes"
-                        mix={others}
-                        onChange={(patch) => setOthers((m) => ({ ...m, ...patch }))}
-                      />
-                    </li>
-                  )}
-                </ul>
-                <div className="links">
-                  <button className="link" onClick={() => addParts([`Part ${parts.length + 1}`])}>
-                    + Add a part
-                  </button>
-                  <button className="link" onClick={detectParts}>
-                    Find the parts again
-                  </button>
-                </div>
-              </>
-            )}
-          </section>
-
-          <section className="controls">
-            <button
-              className="play"
-              aria-label={playing ? 'Stop' : 'Play'}
-              disabled={!model || loading}
-              onClick={() => void togglePlay()}
-            >
-              {playing ? <StopIcon /> : <PlayIcon />}
-            </button>
-
-            <button
-              className="round loop"
-              aria-label="Loop"
-              aria-pressed={loop}
-              title={loop ? 'Loop: on' : 'Loop: off'}
-              onClick={() => setLoop((l) => !l)}
-            >
-              <LoopIcon />
-            </button>
-
-            <div className="control-group" role="group" aria-labelledby="tempo-label">
-              <span className="label" id="tempo-label">
-                Tempo
-              </span>
-              <div className="tempo">
-                <RepeatButton
-                  className="round"
-                  label="Slower"
-                  disabled={bpm <= TEMPO.min}
-                  onStep={() => changeTempo(-1)}
-                >
-                  −
-                </RepeatButton>
-                <output className="bpm" aria-live="polite">
-                  {bpm}
-                </output>
-                <RepeatButton
-                  className="round"
-                  label="Faster"
-                  disabled={bpm >= TEMPO.max}
-                  onStep={() => changeTempo(1)}
-                >
-                  +
-                </RepeatButton>
-              </div>
-            </div>
-          </section>
-        </aside>
       </div>
     </div>
   )
