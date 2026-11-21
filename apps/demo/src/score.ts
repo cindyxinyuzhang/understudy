@@ -73,6 +73,9 @@ export function createOsmd(container: HTMLElement, palette: Palette): OpenSheetM
     defaultColorTitle: palette.ink,
     pageBackgroundColor: palette.paper,
   })
+  // A little under full size fits a four-bar phrase on each line at desktop widths,
+  // which is how singers read a hymn tune; the overlay scales with it.
+  osmd.zoom = 0.8
   return osmd
 }
 
