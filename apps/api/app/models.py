@@ -329,8 +329,10 @@ class Annotation(Base):
 
 
 class ScoreShare(Base):
+    # No separate unique constraint: (score_id, user_id) is the primary key, which already
+    # allows one share per user per score. Postgres folds an identical unique constraint
+    # into the primary key, so declaring one here only makes autogenerate report drift.
     __tablename__ = "score_shares"
-    __table_args__ = (UniqueConstraint("score_id", "user_id", name="uq_share_score_user"),)
 
     score_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("scores.id", ondelete="CASCADE"), primary_key=True
