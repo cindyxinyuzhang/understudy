@@ -16,8 +16,16 @@ const SATB = ['Soprano', 'Alto', 'Tenor', 'Bass']
  *
  * Lines come back ordered staff by staff, and within a staff from highest to lowest
  * average pitch, so the names read top to bottom the way the page does.
+ *
+ * Names: four lines in all are Soprano, Alto, Tenor, Bass. Otherwise lines are
+ * named by the instrument they belong to (`staffInstruments`, by staff index): an
+ * instrument holding exactly four lines is SATB, one with a single line takes the
+ * instrument's own name, and any other count is numbered ("Piano 1", "Piano 2").
  */
-export function findParts(notes: readonly ScoreNote[]): FoundPart[] {
+export function findParts(
+  notes: readonly ScoreNote[],
+  staffInstruments: readonly string[] = [],
+): FoundPart[] {
   const voices = new Map<string, ScoreNote[]>()
   for (const note of notes) {
     const key = `${note.staff}:${note.voice}`
@@ -30,7 +38,7 @@ export function findParts(notes: readonly ScoreNote[]): FoundPart[] {
     (a, b) => a[0]!.staff - b[0]!.staff || meanFreq(b) - meanFreq(a),
   )
 
-  const lines: string[][] = []
+  const lines: { staff: number; ids: string[] }[] = []
   for (const voiceNotes of ordered) {
     const chords = new Map<number, ScoreNote[]>()
     for (const note of voiceNotes) {
@@ -47,12 +55,29 @@ export function findParts(notes: readonly ScoreNote[]): FoundPart[] {
         split[line]!.push(note.id)
       })
     }
-    lines.push(...split.filter((ids) => ids.length > 0))
+    const staff = voiceNotes[0]!.staff
+    lines.push(...split.filter((ids) => ids.length > 0).map((ids) => ({ staff, ids })))
   }
 
-  const names = lines.length === SATB.length ? SATB : lines.map((_, i) => `Part ${i + 1}`)
-  return lines.map((noteIds, i) => ({ name: names[i]!, noteIds }))
+  if (lines.length === SATB.length) return lines.map((l, i) => ({ name: SATB[i]!, noteIds: l.ids }))
+
+  const instrumentOf = (staff: number) => staffInstruments[staff] ?? 'Part'
+  const lineCount = new Map<string, number>()
+  for (const l of lines) lineCount.set(instrumentOf(l.staff), (lineCount.get(instrumentOf(l.staff)) ?? 0) + 1)
+  const seen = new Map<string, number>()
+  return lines.map((l) => {
+    const instrument = instrumentOf(l.staff)
+    const k = seen.get(instrument) ?? 0
+    seen.set(instrument, k + 1)
+    const count = lineCount.get(instrument)!
+    const name = count === SATB.length ? SATB[k]! : count === 1 ? instrument : `${instrument} ${k + 1}`
+    return { name, noteIds: l.ids }
+  })
 }
+
+/** True when the parts found include a full Soprano, Alto, Tenor, Bass set. */
+export const hasSatb = (found: readonly FoundPart[]) =>
+  SATB.every((name) => found.some((f) => f.name === name))
 
 function meanFreq(notes: readonly ScoreNote[]): number {
   return notes.reduce((sum, n) => sum + n.freq, 0) / notes.length

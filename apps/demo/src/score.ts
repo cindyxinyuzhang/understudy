@@ -1,3 +1,4 @@
+import { performanceOrder } from './repeats'
 import {
   OpenSheetMusicDisplay,
   VexFlowGraphicalNote,
@@ -34,6 +35,8 @@ export type Bar = {
   end: number
   /** Pixel box spanning every staff of this bar, for shading a chosen range. */
   box: { x: number; y: number; w: number; h: number } | null
+  /** The tempo marked for this bar, carried on from earlier marks; null if the file has none. */
+  tempo: number | null
 }
 
 /** A drawn notehead: SVG at runtime, though OSMD types it as an HTML element. */
@@ -53,6 +56,10 @@ export type ScoreModel = {
   heads: Map<string, HeadElement[]>
   /** Every drawn note group, for colouring its stem, flag, dots and accidentals. */
   glyphs: Glyph[]
+  /** Indices into `bars` in the order they are performed, repeats and endings followed. */
+  playOrder: number[]
+  /** The instrument each staff belongs to, by staff index, as named in the file. */
+  staffInstruments: string[]
 }
 
 /**
@@ -202,19 +209,74 @@ export function extractModel(osmd: OpenSheetMusicDisplay, container: HTMLElement
     h: svg ? Number(svg.getAttribute('height')) || svg.clientHeight : 0,
   }
 
-  const bars: Bar[] = osmd.Sheet.SourceMeasures.map((source, i) => {
+  // OSMD's tempo data is uneven: with no tempo in the file it fills every bar with
+  // 120, a tempo set directly in a bar reaches DefaultStartTempoInBpm but leaves the
+  // bars at 0, and a metronome direction sets the bars themselves. So: no tempo info
+  // means none; otherwise start from the default and follow any bar that sets one.
+  const sheet = osmd.Sheet
+  const firstMarked = sheet.SourceMeasures.find((m) => m.TempoInBPM > 0)?.TempoInBPM
+  let tempo: number | null = sheet.HasBPMInfo
+    ? sheet.DefaultStartTempoInBpm > 0
+      ? sheet.DefaultStartTempoInBpm
+      : (firstMarked ?? null)
+    : null
+  const bars: Bar[] = sheet.SourceMeasures.map((source, i) => {
     const start = source.AbsoluteTimestamp.RealValue * 4
+    if (sheet.HasBPMInfo && source.TempoInBPM > 0) tempo = source.TempoInBPM
     return {
       number: source.MeasureNumber,
       start,
       end: start + source.Duration.RealValue * 4,
       box: barBox(graphic.MeasureList[i] ?? [], scale),
+      tempo,
     }
   })
 
   evenRows(bars)
 
-  return { notes, bars, length, size, heads, glyphs: findGlyphs(container, heads) }
+  return {
+    notes,
+    bars,
+    length,
+    size,
+    heads,
+    glyphs: findGlyphs(container, heads),
+    playOrder: performanceOrder(sheet.SourceMeasures),
+    staffInstruments: sheet.Instruments.flatMap((instrument) =>
+      instrument.Staves.map(() => instrument.Name?.trim() || 'Part'),
+    ),
+  }
+}
+
+/** One note as performed: `at` is quarters from the start of the performance. */
+export type Scheduled = { note: ScoreNote; at: number }
+
+/** One pass through a written bar, in performance time. */
+export type Visit = { bar: number; at: number; end: number; tempo: number | null }
+
+export type Schedule = { events: Scheduled[]; visits: Visit[]; length: number }
+
+/**
+ * Lay the notes out in performance order: a repeated bar's notes are scheduled once
+ * per pass. Each note keeps its id, so marking and highlighting are unaffected.
+ */
+export function buildSchedule(model: ScoreModel): Schedule {
+  const byBar = model.bars.map(() => [] as ScoreNote[])
+  for (const note of model.notes) {
+    const i = model.bars.findIndex((b) => note.start >= b.start && note.start < b.end)
+    if (i !== -1) byBar[i]!.push(note)
+  }
+  const events: Scheduled[] = []
+  const visits: Visit[] = []
+  let at = 0
+  for (const i of model.playOrder) {
+    const bar = model.bars[i]!
+    for (const note of byBar[i]!) events.push({ note, at: at + note.start - bar.start })
+    const length = bar.end - bar.start
+    visits.push({ bar: i, at, end: at + length, tempo: bar.tempo })
+    at += length
+  }
+  return { events, visits, length: at }
 }
 
 type Box = ScoreNote['box']

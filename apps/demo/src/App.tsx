@@ -12,8 +12,9 @@ import {
 import { Player, type Levels } from './audio'
 import logoUrl from './assets/brand/logo-on-dark.svg'
 import sampleUrl from './assets/sample.musicxml?url'
-import { findParts } from './parts'
+import { findParts, hasSatb } from './parts'
 import {
+  buildSchedule,
   createOsmd,
   extractModel,
   type HeadElement,
@@ -55,6 +56,8 @@ const PART_COLOURS = [
 const SATB = ['Soprano', 'Alto', 'Tenor', 'Bass']
 
 const TEMPO = { min: 50, max: 160, step: 4 }
+const DEFAULT_BPM = 100
+const clampTempo = (bpm: number) => Math.min(TEMPO.max, Math.max(TEMPO.min, bpm))
 
 /** Whether something is heard, and how loud: volume is the slider's 0-100. */
 type Mix = { on: boolean; volume: number }
@@ -95,7 +98,7 @@ export function App() {
   /** Notes no part has claimed. */
   const [others, setOthers] = useState<Mix>(FULL)
   const [playing, setPlaying] = useState(false)
-  const [bpm, setBpm] = useState(100)
+  const [bpm, setBpm] = useState(DEFAULT_BPM)
   /** Indices into model.bars, inclusive. */
   const [range, setRange] = useState({ from: 0, to: 0 })
   const [loop, setLoop] = useState(false)
@@ -179,6 +182,9 @@ export function App() {
         setOthers(FULL)
         const laidOut = layoutRef.current()
         setRange({ from: 0, to: Math.max(0, (laidOut?.bars.length ?? 1) - 1) })
+        // Start from the file's own tempo when it gives one.
+        const opening = laidOut?.bars.find((b) => b.tempo)?.tempo
+        setBpm(opening ? clampTempo(Math.round(opening)) : DEFAULT_BPM)
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
       } finally {
@@ -192,20 +198,31 @@ export function App() {
     void loadScore(SAMPLE_URL, 'Sample score')
   }, [loadScore])
 
-  useEffect(() => {
-    if (!model) return
-    player.stop()
-    player.setScore(model.notes)
-  }, [model, player])
+  const schedule = useMemo(() => (model ? buildSchedule(model) : null), [model])
 
+  useEffect(() => {
+    if (!schedule) return
+    player.stop()
+    player.setScore(schedule)
+  }, [schedule, player])
 
   const bars = model?.bars ?? []
-  const fromBar = bars[range.from]
-  const toBar = bars[range.to]
   const wholePiece = range.from === 0 && range.to === bars.length - 1
+  // The chosen bars, in performance time: from the first time the first bar is
+  // played to the next time the last bar finishes, repeats and all.
+  const span = useMemo(() => {
+    if (!schedule) return null
+    if (wholePiece) return { start: 0, end: schedule.length }
+    const first = schedule.visits.find((v) => v.bar === range.from)
+    if (!first) return null
+    const last =
+      schedule.visits.find((v) => v.bar === range.to && v.at >= first.at) ??
+      schedule.visits.find((v) => v.bar === range.to)
+    return { start: first.at, end: last && last.end > first.at ? last.end : first.end }
+  }, [schedule, range, wholePiece])
   useEffect(() => {
-    if (fromBar && toBar) player.setSpan({ start: fromBar.start, end: toBar.end })
-  }, [fromBar, toBar, player])
+    if (span) player.setSpan(span)
+  }, [span, player])
   useEffect(() => player.setLoop(loop), [loop, player])
   useEffect(() => {
     currentBpm.current = bpm
@@ -261,7 +278,7 @@ export function App() {
   /** Replace whatever parts exist with one per melodic line found in the score. */
   const detectParts = () => {
     if (!model) return
-    const found = findParts(model.notes)
+    const found = findParts(model.notes, model.staffInstruments)
     if (found.length === 0) return
     const made = found.map((f, i) => newPart(f.name, i))
     const next = new Map<string, string>()
@@ -272,14 +289,18 @@ export function App() {
     setMyPartId(made[0]!.id)
   }
 
-  /** If the score splits into exactly four lines, hand them out; otherwise start with empty parts. */
+  /**
+   * If the score holds a Soprano, Alto, Tenor, Bass set (four lines, or four in one
+   * instrument beside others such as a piano), hand out every line found; otherwise
+   * start with empty parts.
+   */
   const presetSatb = () => {
-    if (model && findParts(model.notes).length === SATB.length) detectParts()
+    if (model && hasSatb(findParts(model.notes, model.staffInstruments))) detectParts()
     else addParts(SATB)
   }
 
   const changeTempo = (direction: 1 | -1) =>
-    setBpm((b) => Math.min(TEMPO.max, Math.max(TEMPO.min, b + direction * TEMPO.step)))
+    setBpm((b) => clampTempo(b + direction * TEMPO.step))
 
   const removePart = (id: string) => {
     setParts((prev) => prev.filter((l) => l.id !== id))
